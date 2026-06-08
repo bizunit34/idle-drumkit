@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -15,20 +15,19 @@ import { AppButton } from '../components/AppButton';
 import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
 import { ModeSelectOverlay } from '../components/ModeSelectOverlay';
 import { ScreenContainer } from '../components/ScreenContainer';
+import { appImageAssets } from '../assets/assetManifest';
 import { colors, radii, spacing } from '../theme';
 import type { ScreenName } from '../types';
 
 type Props = {
   navigate: (screen: ScreenName) => void;
+  onWarmModeAssets: () => void;
 };
 
-const mascotSource = require('../../assets/images/mascot-source.png') as ImageSourcePropType;
-const drumSetSource =
-  require('../../assets/images/home-carousel-drum-set.png') as ImageSourcePropType;
-const midiPadsSource =
-  require('../../assets/images/home-carousel-midi-pads.png') as ImageSourcePropType;
-const customSoundsSource =
-  require('../../assets/images/home-carousel-custom-sounds.png') as ImageSourcePropType;
+const mascotSource = appImageAssets.mascotSource.source;
+const drumSetSource = appImageAssets.homeCarouselDrumSet.source;
+const midiPadsSource = appImageAssets.homeCarouselMidiPads.source;
+const customSoundsSource = appImageAssets.homeCarouselCustomSounds.source;
 
 type HomeSlide = {
   title: string;
@@ -82,15 +81,20 @@ const modeOptions = [
   },
 ];
 
-export function HomeScreen({ navigate }: Props) {
+export function HomeScreen({ navigate, onWarmModeAssets }: Props) {
   const carouselRef = useRef<ScrollView>(null);
   const [showModes, setShowModes] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(1);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const { width } = useWindowDimensions();
-  const compact = width < 720;
+  const landscape = width >= 720;
+  const compact = !landscape;
   const shouldShowMascot = !failedImages.mascot;
+
+  useEffect(() => {
+    onWarmModeAssets();
+  }, [onWarmModeAssets]);
 
   const setImageFailed = (key: string) =>
     setFailedImages((current) => ({ ...current, [key]: true }));
@@ -117,25 +121,35 @@ export function HomeScreen({ navigate }: Props) {
   return (
     <ScreenContainer>
       <View style={[styles.container, compact && styles.compact]}>
-        <View style={[styles.leftPanel, compact && styles.compactLeftPanel]}>
-          <View style={styles.mascotPlaceholder}>
-            {shouldShowMascot ? (
-              <Image
-                source={mascotSource}
-                resizeMode="contain"
-                accessibilityIgnoresInvertColors
-                onError={() => setImageFailed('mascot')}
-                style={styles.mascotImage}
-              />
-            ) : (
-              <>
-                <View style={styles.mascotHead} />
-                <View style={styles.mascotDrum} />
-              </>
-            )}
+        <View
+          style={[
+            styles.leftPanel,
+            compact && styles.compactLeftPanel,
+            landscape && styles.landscapeLeftPanel,
+          ]}
+        >
+          <View style={styles.brandRow}>
+            <View style={styles.mascotPlaceholder}>
+              {shouldShowMascot ? (
+                <Image
+                  source={mascotSource}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                  onError={() => setImageFailed('mascot')}
+                  style={styles.mascotImage}
+                />
+              ) : (
+                <>
+                  <View style={styles.mascotHead} />
+                  <View style={styles.mascotDrum} />
+                </>
+              )}
+            </View>
+            <View style={styles.brandCopy}>
+              <Text style={styles.brand}>Drumkit</Text>
+              <Text style={styles.subtitle}>Tap-ready drums for playing along anywhere.</Text>
+            </View>
           </View>
-          <Text style={styles.brand}>Drumkit</Text>
-          <Text style={styles.subtitle}>Tap-ready drums for playing along anywhere.</Text>
           <View style={styles.actions}>
             <AppButton label="Start" variant="primary" onPress={() => setShowModes(true)} />
             <AppButton label="Settings" onPress={() => navigate('settings')} />
@@ -223,30 +237,43 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: spacing.xl,
-    padding: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
     backgroundColor: colors.background,
   },
   compact: {
     flexDirection: 'column',
     gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   leftPanel: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
+    width: 330,
+    flexShrink: 0,
     justifyContent: 'center',
-    minWidth: 260,
+    gap: spacing.lg,
+  },
+  landscapeLeftPanel: {
+    paddingLeft: spacing.sm,
   },
   compactLeftPanel: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+    width: '100%',
+    justifyContent: 'flex-start',
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
   },
+  brandCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   mascotPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -267,25 +294,25 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   mascotImage: {
-    width: 86,
-    height: 86,
+    width: 78,
+    height: 78,
   },
   brand: {
     color: colors.text,
-    fontSize: 48,
+    fontSize: 42,
     fontWeight: '900',
   },
   subtitle: {
     color: colors.mutedText,
-    fontSize: 18,
-    marginTop: spacing.sm,
-    maxWidth: 420,
+    fontSize: 15,
+    lineHeight: 20,
+    marginTop: spacing.xs,
   },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
-    marginTop: spacing.lg,
+    marginTop: spacing.sm,
   },
   cardPressed: {
     opacity: 0.78,
@@ -293,7 +320,7 @@ const styles = StyleSheet.create({
   },
   carousel: {
     flex: 1,
-    minHeight: 260,
+    minHeight: 250,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -302,12 +329,12 @@ const styles = StyleSheet.create({
   },
   slide: {
     justifyContent: 'center',
-    padding: spacing.xl,
+    padding: spacing.lg,
   },
   slideArt: {
     flex: 1,
-    minHeight: 108,
-    maxHeight: 180,
+    minHeight: 96,
+    maxHeight: 190,
     borderRadius: radii.lg,
     backgroundColor: colors.surfaceMuted,
     justifyContent: 'center',
@@ -340,14 +367,14 @@ const styles = StyleSheet.create({
   },
   slideTitle: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '900',
     marginTop: spacing.sm,
   },
   slideBody: {
     color: colors.mutedText,
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 21,
     marginTop: spacing.sm,
   },
   carouselControls: {

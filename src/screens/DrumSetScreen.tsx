@@ -23,6 +23,7 @@ import {
 import { drumAssets } from '../data/drumAssets';
 import { defaultDrumPieces } from '../data/drumKit';
 import { colors, radii, spacing } from '../theme';
+import { getResponsiveDrumScale } from '../utils/drumSizing';
 import { clampDrumPiecePosition } from '../utils/layout';
 import type {
   AppSettings,
@@ -130,26 +131,27 @@ export function DrumSetScreen({
       defaultDrumPieces
         .map((piece): DrumPiece => {
           const scale = activeProfile.scales[piece.id] ?? 1;
+          const responsiveScale = getResponsiveDrumScale(piece.id, landscape);
           const scaledPiece: DrumPiece = {
             ...piece,
             position: positions[piece.id] ?? piece.position,
             size: {
-              width: piece.size.width * scale,
-              height: piece.size.height * scale,
+              width: piece.size.width * scale * responsiveScale.hitBox.width,
+              height: piece.size.height * scale * responsiveScale.hitBox.height,
             },
           };
 
           if (piece.defaultVisualSize) {
             scaledPiece.defaultVisualSize = {
-              width: piece.defaultVisualSize.width * scale,
-              height: piece.defaultVisualSize.height * scale,
+              width: piece.defaultVisualSize.width * scale * responsiveScale.visual.width,
+              height: piece.defaultVisualSize.height * scale * responsiveScale.visual.height,
             };
           }
 
           return scaledPiece;
         })
         .sort((left, right) => (left.zIndex ?? 0) - (right.zIndex ?? 0)),
-    [activeProfile.scales, positions],
+    [activeProfile.scales, landscape, positions],
   );
 
   const persistProfilePatch = (patch: Partial<DrumLayoutProfile>) => {

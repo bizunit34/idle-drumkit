@@ -23,6 +23,18 @@ Current Expo placeholder PNGs live in `assets/` and should remain until final re
 - `assets/images/custom-sound-import.png`: file/audio waveform import illustration.
 - `assets/images/empty-preset-bank.png`: empty preset/bank illustration.
 
+These Home and MIDI helper images are included in the central asset manifest at `src/assets/assetManifest.ts` so startup and mode-entry preloading can stay data-driven.
+
+## Future MIDI Controller Assets
+
+The current MIDI Controller is built from dynamic React Native views so 3x4 and 4x4 layouts remain editable. Future controller artwork should be frame/surface support only; do not bake pad labels, pad colors, or fixed pad grids into a single image.
+
+- `assets/images/midi-controller/controller-frame-4x4.png`: optional 4x4 hardware frame without pads or text.
+- `assets/images/midi-controller/controller-frame-3x4.png`: optional 3x4 hardware frame without pads or text.
+- `assets/images/midi-controller/pad-surface.png`: optional reusable pad-well/surface texture.
+
+If these assets are missing, the app should keep using the styled hardware body and dynamic pad components.
+
 ## Drum Piece Assets
 
 The Drum Set screen uses individual movable piece PNGs. Keep hit boxes data-driven in code; these images are visuals only and the shape-based kit remains the fallback.

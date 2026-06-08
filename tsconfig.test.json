@@ -13,10 +13,13 @@
     "src/data/drumArticulations.ts",
     "src/data/drumKit.ts",
     "src/data/drumLayoutProfiles.ts",
+    "src/data/midiPadBehavior.ts",
+    "src/data/midiPadDisplay.ts",
     "src/data/midiPads.ts",
     "src/data/padUtils.ts",
     "src/storage/storageValidation.ts",
     "src/types/index.ts",
+    "src/utils/drumSizing.ts",
     "src/utils/layout.ts",
     "src/utils/slider.ts"
   ]

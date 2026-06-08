@@ -20,7 +20,7 @@ import type {
   Point,
 } from '../types';
 
-const STORAGE_SCHEMA_VERSION = 3;
+const STORAGE_SCHEMA_VERSION = 4;
 const SCHEMA_VERSION_KEY = 'drumkit:schemaVersion';
 const SETTINGS_KEY = 'drumkit:settings';
 const DRUM_POSITIONS_KEY = 'drumkit:drumPositions';

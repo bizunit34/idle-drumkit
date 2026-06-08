@@ -136,8 +136,38 @@ export type MidiPad = {
   label: string;
   sound: SoundKey;
   accentColor: string;
+  behavior: MidiPadBehaviorSettings;
   customSoundUri?: string | undefined;
   customSoundName?: string | undefined;
+};
+
+export type MidiPadPlaybackMode = 'oneShot' | 'gate' | 'toggle';
+
+export type MidiPadRetriggerMode = 'overlap' | 'restart' | 'ignoreWhilePlaying';
+
+export type MidiPadChokeGroup =
+  | 'none'
+  | 'hihat'
+  | 'cymbal'
+  | 'group1'
+  | 'group2'
+  | 'group3'
+  | 'group4';
+
+export type MidiPadStopMode = 'immediate' | 'shortFade' | 'mediumFade';
+
+export type MidiPadBehaviorSettings = {
+  playbackMode: MidiPadPlaybackMode;
+  retriggerMode: MidiPadRetriggerMode;
+  chokeGroup: MidiPadChokeGroup;
+  stopMode: MidiPadStopMode;
+  padVolume: number;
+};
+
+export type MidiDisplaySettings = {
+  showPadLabels: boolean;
+  showPadSoundNames: boolean;
+  showPadNumbers: boolean;
 };
 
 export type AppSettings = {
@@ -145,6 +175,7 @@ export type AppSettings = {
   showHitBoxes: boolean;
   lowLatencyMode: boolean;
   selectedDrumArticulations: SelectedDrumArticulations;
+  midiDisplay: MidiDisplaySettings;
 };
 
 export type PersistedAppState = {

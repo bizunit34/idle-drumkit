@@ -20,6 +20,8 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 
 - Start with `npm start` and open in Expo Go or a dev client when available.
 - Expected: audio plays from device speaker/headphones, taps remain responsive, and external music can continue where the platform allows.
+- Also test a packaged internal build before wider tester distribution.
+- Expected: Home, Drum Set, and MIDI image assets appear without dev-client-only assumptions; release builds can load assets differently from Metro.
 
 ## Portrait and Landscape
 
@@ -28,8 +30,13 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 
 ## Home Navigation
 
+- In portrait, confirm the mascot/logo sits left of the Drumkit title/tagline, with Start and Settings below the brand row.
+- Expected: Start and Settings are fully visible, not clipped, and separated from the carousel by a clear gap.
+- In landscape, confirm Home uses a two-column layout with brand/actions on the left and a wider carousel/info panel on the right.
+- Expected: carousel image and native title/body text do not overflow, and the left edge of the brand/action area is not clipped.
 - Tap Start.
 - Expected: a dimmed mode-selection overlay opens without shifting the Home layout.
+- Expected: the Choose a mode panel is centered vertically and horizontally.
 - Tap outside the overlay or Close.
 - Expected: overlay dismisses cleanly.
 - Tap Drum Set and MIDI Controller cards in the overlay.
@@ -50,6 +57,8 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 - Tap kick, snare, hi-hat, crash, ride, high tom, mid tom, and floor tom.
 - Expected: each visible piece plays its assigned bundled sound and shows a press state.
 - In landscape, confirm the kit surface dominates the screen and controls are hidden until opened.
+- In landscape, confirm kick, snare, hi-hat, and floor tom are large enough vertically for comfortable tapping.
+- Expected: hit-box overlays are taller than before in landscape while widths remain sensible.
 - Tap Controls.
 - Expected: the overlay includes Edit Layout, Reset Layout, profile selection, hi-hat Closed/Open, selected piece articulations, and piece sizing in edit mode.
 - Toggle hi-hat between Closed and Open, then tap the hi-hat.
@@ -127,19 +136,44 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 
 - Open MIDI Controller and select 3x4.
 - Tap every visible pad.
-- Expected: 12 pads fill the controller surface cleanly, each pad plays, and selected pad state updates.
+- Expected: 12 tactile pads fill the recessed controller surface cleanly, each pad plays, and selected pad state updates with outline/scale/accent treatment.
 
 ## MIDI 4x4 Mode
 
 - Select 4x4.
 - Tap every visible pad.
-- Expected: 16 pads fill the controller surface cleanly and each pad plays.
+- Expected: 16 tactile pads fill the controller surface cleanly and each pad plays.
 
 ## MIDI Pad Editing
 
-- Select a pad.
+- Tap a pad.
+- Expected: in Performance Mode, the pad plays immediately on press and becomes selected; playback does not wait for long-press detection.
+- Hold a pad in Performance Mode.
+- Expected: holding does not open Pad Edit. Hold/release behavior follows that pad's Playback Mode.
+- Open Controls and tap Edit Pads.
+- Expected: Edit Pads Mode turns on and the controls sheet closes.
+- Tap a pad in Edit Pads Mode.
+- Expected: Pad Edit opens for that exact pad and the pad does not play.
 - Rename the label, choose a new accent color, and select a different default sound.
 - Expected: pad updates immediately and changes persist after leaving and returning to the screen.
+- Open Controls.
+- Expected: the General MIDI Controls sheet contains Performance/Edit Pads mode toggle, grid size, display settings, Reset Pads, selected pad summary, and mode-specific instructions.
+- Set Playback Mode to Play once.
+- Expected: pressing the pad starts playback and release does not stop it.
+- Set Playback Mode to Hold to play.
+- Expected: pressing starts playback and releasing stops using the selected Stop/Release setting.
+- Set Playback Mode to Tap start/stop.
+- Expected: first press starts playback and the next press stops it.
+- Set Retrigger to Layer hits, Restart, and Ignore while playing.
+- Expected: repeated presses follow the selected behavior within current Expo audio limits.
+- Set closed hat and open hat pads to Choke Group Hi-hat.
+- Expected: pressing one chokes the other where pooled Expo audio allows.
+- Change Pad Volume.
+- Expected: that pad plays quieter/louder relative to the master volume and persists after reload.
+- Toggle Show Pad Labels, Show Sound Names, and Show Pad Numbers.
+- Expected: visible pad text changes immediately, settings persist after app reload, and pads remain identifiable by accent/selected state when most text is hidden.
+- Turn off all visible pad text.
+- Expected: pads still have useful accessibility labels with pad label and assigned sound.
 - Tap Reset Pads and cancel.
 - Expected: no changes are reset.
 - Tap Reset Pads and confirm.
@@ -186,11 +220,24 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 ## MIDI Controls Overlay
 
 - Open MIDI Controller.
-- Expected: the pad grid is the dominant visible content and the large editor panel is hidden.
+- Expected: the dark controller body, recessed pad surface, and pad grid are the dominant visible content and the large editor panel is hidden.
 - Tap a pad.
 - Expected: the pad plays immediately and becomes selected for editing.
-- Long-press a pad or tap Controls.
-- Expected: a readable controls overlay opens with 3x4/4x4, Reset Pads, label, accent color, default sound, and custom audio controls.
+- Tap Controls.
+- Expected: a readable General MIDI Controls overlay opens with Performance/Edit Pads mode, 3x4/4x4, Reset Pads, pad display toggles, selected pad summary, and an Edit Pad action.
+- Tap Edit Pad from Controls or tap a pad while Edit Pads Mode is on.
+- Expected: a separate readable Pad Edit overlay opens with label, accent color, default sound, playback behavior, custom audio import, and clear custom sound controls.
+
+## Asset Preload And Loading
+
+- Cold start the app.
+- Expected: a dark Drumkit loading state appears only while persisted state and critical Home assets are prepared or timed out.
+- Let Home sit for a few seconds, then open Drum Set and MIDI Controller.
+- Expected: mode entry is quick because Home background-warms mode image groups.
+- Immediately open Drum Set or MIDI Controller after Home appears.
+- Expected: if mode assets are not ready, a small loading overlay appears briefly and then the screen opens even if an asset fails.
+- Simulate a missing optional image only in a local test branch.
+- Expected: screens fall back to existing placeholder/shape rendering rather than blocking play or sound.
 
 ## Safe Area And Floating Controls
 
@@ -198,11 +245,15 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Expected: content is not tucked under the status bar, camera cutout, or gesture bar.
 - Confirm no floating settings gear appears over Settings or play-screen content.
 - Expected: Settings is reached through normal buttons/navigation and does not overlap content.
+- If old Home Prev/Next buttons or mode Open buttons appear during QA, clear the Metro cache with `npx expo start --dev-client -c` and retest.
+- For polish screenshots, turn off Android developer Pointer Location and Show taps overlays.
 
 ## Known Limitations
 
 - Synthetic bundled sounds are placeholders, not production samples.
 - Audio latency is still managed Expo audio latency, not a native low-latency sampler.
+- MIDI gate/toggle/choke/fade behavior is best-effort with Expo audio pooled players, not exact native sampler envelopes.
 - Custom imported file playback depends on platform file support and selected file format.
 - No real ads, purchases, backend, auth, or cloud sync are included.
 - Automated tests are deferred until a stable test setup is selected.
+- Component rendering tests are deferred; current automated coverage focuses on stable pure logic for storage, articulation, MIDI display, assets, and layout helpers.

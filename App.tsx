@@ -11,10 +11,17 @@ import {
   View,
 } from 'react-native';
 import {
+  isAssetGroupLoaded,
+  preloadAssetGroup,
+  preloadModeAssetsInBackground,
+} from './src/assets/preloadAssets';
+import {
   chokeDrumSound,
   configureDrumkitAudio,
   playDrumSound,
+  pressMidiPad,
   releaseAudioPlayers,
+  releaseMidiPad,
 } from './src/audio/audioService';
 import { AppToast } from './src/components/AppToast';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -56,12 +63,13 @@ function DrumkitApp() {
   const [midiGridSize, setMidiGridSize] = useState<MidiGridSize>('4x4');
   const [midiPads, setMidiPads] = useState<MidiPad[]>(defaultMidiPads);
   const [loaded, setLoaded] = useState(false);
+  const [modeLoading, setModeLoading] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    loadAppState()
-      .then((state) => {
+    Promise.all([loadAppState(), preloadAssetGroup('critical', 2200)])
+      .then(([state]) => {
         if (!mounted) return;
         setSettings(state.settings);
         setActiveDrumProfileId(state.activeDrumProfileId);
@@ -123,6 +131,18 @@ function DrumkitApp() {
       .catch(() => setNotice('Sound failed to play.'));
   };
 
+  const pressPad = (pad: MidiPad) => {
+    pressMidiPad(pad, settings)
+      .then((result) => {
+        if (!result.ok) setNotice(result.message);
+      })
+      .catch(() => setNotice('Pad failed to play.'));
+  };
+
+  const releasePad = (pad: MidiPad) => {
+    releaseMidiPad(pad).catch(() => setNotice('Could not stop pad.'));
+  };
+
   const chokeSound = (sound: SoundKey) => {
     chokeDrumSound(sound).catch(() => setNotice('Could not choke sound.'));
   };
@@ -148,6 +168,25 @@ function DrumkitApp() {
         },
       },
     ]);
+  };
+
+  const navigate = (next: ScreenName) => {
+    if (next !== 'drumSet' && next !== 'midiController') {
+      setScreen(next);
+      return;
+    }
+
+    const group = next === 'drumSet' ? 'drumSet' : 'midiController';
+    if (!isAssetGroupLoaded(group)) {
+      setModeLoading(next === 'drumSet' ? 'Loading drum kit...' : 'Loading MIDI controller...');
+    }
+
+    preloadAssetGroup(group, 1200)
+      .catch(() => undefined)
+      .finally(() => {
+        setScreen(next);
+        setModeLoading(null);
+      });
   };
 
   const renderScreen = () => {
@@ -186,9 +225,11 @@ function DrumkitApp() {
           gridSize={midiGridSize}
           pads={midiPads}
           onBack={() => setScreen('home')}
-          onPlayPad={(pad) => playSound(pad.sound, pad.customSoundUri)}
+          onPressPad={pressPad}
+          onReleasePad={releasePad}
           onSaveGridSize={persistMidiGridSize}
           onSavePads={persistMidiPads}
+          onSaveSettings={persistSettings}
           onNotify={setNotice}
         />
       );
@@ -206,12 +247,18 @@ function DrumkitApp() {
       );
     }
 
-    return <HomeScreen navigate={setScreen} />;
+    return <HomeScreen navigate={navigate} onWarmModeAssets={preloadModeAssetsInBackground} />;
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {renderScreen()}
+      {modeLoading ? (
+        <View style={styles.modeLoading}>
+          <ActivityIndicator color={colors.cyan} />
+          <Text style={styles.loadingText}>{modeLoading}</Text>
+        </View>
+      ) : null}
       <AppToast message={notice} />
       <StatusBar style="light" />
     </SafeAreaView>
@@ -241,5 +288,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
     color: colors.text,
     fontWeight: '700',
+  },
+  modeLoading: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(5, 7, 10, 0.74)',
   },
 });

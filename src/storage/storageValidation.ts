@@ -9,6 +9,7 @@ import {
   validateSelectedDrumArticulations,
 } from '../data/drumArticulations';
 import { defaultDrumPieces } from '../data/drumKit';
+import { getDefaultMidiPadBehavior } from '../data/midiPadBehavior';
 import { buildResetMidiPads, mergeStoredMidiPads } from '../data/padUtils';
 import type {
   AppSettings,
@@ -17,9 +18,15 @@ import type {
   HiHatArticulation,
   MidiGridSize,
   MidiPad,
+  MidiDisplaySettings,
   Point,
   SelectedDrumArticulations,
   SoundKey,
+  MidiPadBehaviorSettings,
+  MidiPadChokeGroup,
+  MidiPadPlaybackMode,
+  MidiPadRetriggerMode,
+  MidiPadStopMode,
 } from '../types';
 
 export const defaultSettings: AppSettings = {
@@ -27,6 +34,11 @@ export const defaultSettings: AppSettings = {
   showHitBoxes: false,
   lowLatencyMode: true,
   selectedDrumArticulations: getDefaultSelectedDrumArticulations(),
+  midiDisplay: {
+    showPadLabels: true,
+    showPadSoundNames: false,
+    showPadNumbers: false,
+  },
 };
 
 export const defaultDrumLayoutProfiles = buildDefaultDrumLayoutProfiles();
@@ -67,6 +79,19 @@ const isHiHatArticulation = (value: unknown): value is HiHatArticulation =>
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+const playbackModes = new Set<MidiPadPlaybackMode>(['oneShot', 'gate', 'toggle']);
+const retriggerModes = new Set<MidiPadRetriggerMode>(['overlap', 'restart', 'ignoreWhilePlaying']);
+const chokeGroups = new Set<MidiPadChokeGroup>([
+  'none',
+  'hihat',
+  'cymbal',
+  'group1',
+  'group2',
+  'group3',
+  'group4',
+]);
+const stopModes = new Set<MidiPadStopMode>(['immediate', 'shortFade', 'mediumFade']);
+
 export function validateSettings(value: unknown): AppSettings {
   if (!isRecord(value)) return defaultSettings;
   const hasStoredSelections = isRecord(value.selectedDrumArticulations);
@@ -91,11 +116,64 @@ export function validateSettings(value: unknown): AppSettings {
         ? value.lowLatencyMode
         : defaultSettings.lowLatencyMode,
     selectedDrumArticulations,
+    midiDisplay: validateMidiDisplaySettings(value.midiDisplay),
+  };
+}
+
+export function validateMidiDisplaySettings(value: unknown): MidiDisplaySettings {
+  if (!isRecord(value)) return defaultSettings.midiDisplay;
+
+  return {
+    showPadLabels:
+      typeof value.showPadLabels === 'boolean'
+        ? value.showPadLabels
+        : defaultSettings.midiDisplay.showPadLabels,
+    showPadSoundNames:
+      typeof value.showPadSoundNames === 'boolean'
+        ? value.showPadSoundNames
+        : defaultSettings.midiDisplay.showPadSoundNames,
+    showPadNumbers:
+      typeof value.showPadNumbers === 'boolean'
+        ? value.showPadNumbers
+        : defaultSettings.midiDisplay.showPadNumbers,
   };
 }
 
 export function validateMidiGridSize(value: unknown): MidiGridSize {
   return value === '3x4' || value === '4x4' ? value : '4x4';
+}
+
+export function validateMidiPadBehaviorSettings(
+  value: unknown,
+  sound: SoundKey,
+): MidiPadBehaviorSettings {
+  const fallback = getDefaultMidiPadBehavior(sound);
+  if (!isRecord(value)) return fallback;
+
+  return {
+    playbackMode:
+      typeof value.playbackMode === 'string' &&
+      playbackModes.has(value.playbackMode as MidiPadPlaybackMode)
+        ? (value.playbackMode as MidiPadPlaybackMode)
+        : fallback.playbackMode,
+    retriggerMode:
+      typeof value.retriggerMode === 'string' &&
+      retriggerModes.has(value.retriggerMode as MidiPadRetriggerMode)
+        ? (value.retriggerMode as MidiPadRetriggerMode)
+        : fallback.retriggerMode,
+    chokeGroup:
+      typeof value.chokeGroup === 'string' && chokeGroups.has(value.chokeGroup as MidiPadChokeGroup)
+        ? (value.chokeGroup as MidiPadChokeGroup)
+        : fallback.chokeGroup,
+    stopMode:
+      typeof value.stopMode === 'string' && stopModes.has(value.stopMode as MidiPadStopMode)
+        ? (value.stopMode as MidiPadStopMode)
+        : fallback.stopMode,
+    padVolume:
+      typeof value.padVolume === 'number'
+        ? Math.round(clampNumber(value.padVolume, 0, 100))
+        : fallback.padVolume,
+  };
 }
 
 export function validateDrumPositions(value: unknown): Record<string, Point> {
@@ -140,6 +218,7 @@ function validateMidiPad(value: unknown): MidiPad | null {
     label: value.label,
     sound: value.sound,
     accentColor: value.accentColor,
+    behavior: validateMidiPadBehaviorSettings(value.behavior, value.sound),
     customSoundUri: typeof value.customSoundUri === 'string' ? value.customSoundUri : undefined,
     customSoundName: typeof value.customSoundName === 'string' ? value.customSoundName : undefined,
   };

@@ -12,8 +12,10 @@ Copy this into a GitHub QA finding or test report when running internal alpha ch
 - Install method:
 - Orientation tested: Portrait / Landscape / Both
 - Screens tested: Home / Drum Set / MIDI Controller / Settings
-- Carousel tested: Swipe / Press / Prev-Next / Not tested
+- Carousel tested: Swipe / Press / Dots / Not tested
 - Start overlay tested: Yes / No
+- MIDI edit tested: Performance mode / Edit Pads mode / Pad Edit / Not tested
+- MIDI playback behavior tested: One-shot / Gate / Toggle / Choke / Not tested
 - External music tested: Yes / No
 
 ## Result

@@ -2,6 +2,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -39,6 +40,8 @@ export function ModeSelectOverlay({
 }: Props) {
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
+  const panelWidth = Math.min(width - spacing.lg * 2, landscape ? 860 : 520);
+  const sideBySide = landscape && panelWidth >= 680;
 
   const openMode = (screen: ScreenName) => {
     onClose();
@@ -49,7 +52,7 @@ export function ModeSelectOverlay({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[styles.sheet, landscape && styles.landscapeSheet]}>
+        <View style={[styles.sheet, { maxHeight: height - spacing.lg * 2, width: panelWidth }]}>
           <View style={styles.header}>
             <View>
               <Text style={styles.eyebrow}>Start Playing</Text>
@@ -57,15 +60,23 @@ export function ModeSelectOverlay({
             </View>
             <AppButton label="Close" variant="secondary" onPress={onClose} />
           </View>
-          <View style={[styles.options, landscape && styles.landscapeOptions]}>
+          <ScrollView
+            style={styles.scroller}
+            contentContainerStyle={[styles.options, sideBySide && styles.landscapeOptions]}
+          >
             {options.map((option) => {
               const showImage =
                 option.image && option.imageKey ? !failedImages[option.imageKey] : false;
               return (
                 <Pressable
                   key={option.title}
+                  accessibilityRole="button"
                   onPress={() => openMode(option.screen)}
-                  style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                  style={({ pressed }) => [
+                    styles.card,
+                    sideBySide && styles.landscapeCard,
+                    pressed && styles.cardPressed,
+                  ]}
                 >
                   <View style={styles.imageFrame}>
                     {showImage ? (
@@ -87,7 +98,7 @@ export function ModeSelectOverlay({
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -97,23 +108,18 @@ export function ModeSelectOverlay({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
     backgroundColor: 'rgba(0, 0, 0, 0.66)',
   },
   sheet: {
-    maxHeight: '92%',
     gap: spacing.lg,
     padding: spacing.lg,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     backgroundColor: colors.backgroundAlt,
-  },
-  landscapeSheet: {
-    alignSelf: 'center',
-    width: '88%',
-    maxWidth: 860,
   },
   header: {
     flexDirection: 'row',
@@ -136,18 +142,24 @@ const styles = StyleSheet.create({
   options: {
     gap: spacing.md,
   },
+  scroller: {
+    flexShrink: 1,
+  },
   landscapeOptions: {
     flexDirection: 'row',
   },
   card: {
-    flex: 1,
-    minHeight: 210,
+    minHeight: 188,
     gap: spacing.sm,
     padding: spacing.md,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+  },
+  landscapeCard: {
+    flex: 1,
+    minHeight: 196,
   },
   cardPressed: {
     opacity: 0.82,
