@@ -1,4 +1,5 @@
 import type { DrumPiece } from '../types';
+import { drumArticulationConfigs } from './drumArticulations';
 
 export const defaultDrumPieces: DrumPiece[] = [
   {
@@ -14,6 +15,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1.35,
     hitBoxShape: 'oval',
     zIndex: 1,
+    articulationConfig: drumArticulationConfigs.crash,
   },
   {
     id: 'hihat',
@@ -28,6 +30,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1.35,
     hitBoxShape: 'oval',
     zIndex: 4,
+    articulationConfig: drumArticulationConfigs.hihat,
   },
   {
     id: 'snare',
@@ -42,6 +45,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1,
     hitBoxShape: 'circle',
     zIndex: 6,
+    articulationConfig: drumArticulationConfigs.snare,
   },
   {
     id: 'kick',
@@ -56,6 +60,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1,
     hitBoxShape: 'circle',
     zIndex: 2,
+    articulationConfig: drumArticulationConfigs.kick,
   },
   {
     id: 'highTom',
@@ -70,6 +75,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1,
     hitBoxShape: 'circle',
     zIndex: 5,
+    articulationConfig: drumArticulationConfigs.highTom,
   },
   {
     id: 'midTom',
@@ -84,6 +90,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1,
     hitBoxShape: 'circle',
     zIndex: 5,
+    articulationConfig: drumArticulationConfigs.midTom,
   },
   {
     id: 'floorTom',
@@ -98,6 +105,7 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1,
     hitBoxShape: 'circle',
     zIndex: 4,
+    articulationConfig: drumArticulationConfigs.floorTom,
   },
   {
     id: 'ride',
@@ -112,5 +120,6 @@ export const defaultDrumPieces: DrumPiece[] = [
     imageAspectRatio: 1.35,
     hitBoxShape: 'oval',
     zIndex: 1,
+    articulationConfig: drumArticulationConfigs.ride,
   },
 ];

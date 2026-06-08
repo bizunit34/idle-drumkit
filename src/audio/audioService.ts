@@ -92,6 +92,10 @@ async function chokeSource(source: number | string): Promise<void> {
   );
 }
 
+export async function chokeDrumSound(sound: SoundKey): Promise<void> {
+  await chokeSource(bundledSounds[sound]);
+}
+
 function warmBundledSounds(volume: number): void {
   for (const source of Object.values(bundledSounds)) {
     getBucket(source, volume);
@@ -105,7 +109,7 @@ export async function playDrumSound(
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const volume = Math.max(0, Math.min(1, settings.masterVolume));
   if (sound === 'closedHihat') {
-    await chokeSource(bundledSounds.openHihat);
+    await chokeDrumSound('openHihat');
   }
 
   if (customSoundUri) {

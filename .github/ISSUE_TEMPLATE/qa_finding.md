@@ -14,6 +14,10 @@ assignees: ''
 
 ## Screen
 
+## Articulation Involved
+
+If applicable: hi-hat Closed/Open, snare Center/Rimshot/Cross-stick, crash Hit/Choke, ride Bow/Bell, tom Center/Rim.
+
 ## Steps
 
 1.

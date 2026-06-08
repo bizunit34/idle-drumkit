@@ -56,7 +56,13 @@ For first-round alpha work, also review `docs/FIRST_ROUND_QA.md` and update it w
 
 For internal alpha work, also review `docs/INTERNAL_ALPHA.md`, `docs/ASSET_PIPELINE.md`, and `assets/images/README.md`.
 
-Tests are not configured yet.
+When articulation, audio, asset fallback, or storage behavior changes, update the QA docs and keep the pure logic tests passing.
+
+Pure logic tests are configured:
+
+```sh
+npm test
+```
 
 ## Current MVP Scope
 

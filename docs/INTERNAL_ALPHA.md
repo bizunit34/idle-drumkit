@@ -88,10 +88,23 @@ Ask testers to file GitHub issues using the QA finding template. Include:
 
 Run through `docs/FIRST_ROUND_QA.md`, including the external-music scenario: start music/audio from another app before playing Drumkit sounds.
 
+## Before Sharing With Testers
+
+- Run `npm run validate`.
+- Run `npm start` and confirm Metro reports `Waiting on http://localhost:8081`.
+- Confirm the app launches on iOS.
+- Confirm the app launches on Android.
+- Confirm Drum Set plays all default pieces.
+- Confirm Drum Set articulation defaults and hi-hat closed/open visual swap.
+- Confirm MIDI pads play in 3x4 and 4x4 layouts.
+- Confirm settings persist after app reload.
+- Confirm no broken asset references are visible on Home, Drum Set, or MIDI custom audio UI.
+- Confirm known limitations are included in tester instructions.
+
 ## Known Limitations
 
 - Placeholder synthetic sounds and generated Expo icons are not final assets.
 - Audio latency is managed Expo audio latency, not a native low-latency sampler.
 - No real ads, purchases, backend, auth, or cloud sync.
 - Imported custom audio depends on selected file format and platform codec support.
-- Automated tests are deferred.
+- Automated tests currently cover pure articulation and storage validation logic only.

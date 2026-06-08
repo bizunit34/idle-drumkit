@@ -6,14 +6,21 @@
 - First-round alpha polish complete: Home cards, clearer Drum Set edit mode, MIDI reset confirmation, durable custom sound imports, toast feedback, storage schema versioning, future image placeholder notes, and manual QA checklist are in place.
 - Internal alpha prep complete: app identifier placeholders, build metadata, EAS profiles, internal alpha docs, asset pipeline docs, QA issue templates, and app-level error boundary are in place.
 - Drum-piece image architecture complete: optional per-piece image metadata and central registry are in place while current shape hit boxes remain the fallback.
-- Hi-hat articulation complete: Drum Set has a persisted Closed/Open toggle and closed hi-hat chokes the bundled open hi-hat player pool.
+- Drum articulation foundation complete: Drum Set now has persisted per-piece articulation selections, hi-hat closed/open visual swapping, crash choke action support, and reusable articulation helpers for future variants.
+- QA hardening complete: articulation mapping validation, storage migration tests, QA run template, expanded articulation regression checklist, and internal alpha pre-share checklist are in place.
 - Improve touch ergonomics and responsive layout with real device feedback.
 - Add better accessibility labels and screen reader hints.
-- Add unit tests around data persistence, layout bounds, MIDI pad reset behavior, and audio fallback behavior.
+- Expand automated tests around MIDI pad reset behavior, custom audio fallback, and additional layout edge cases.
 - Add visual polish for hit feedback and edit states.
+- Add tap-zone articulations so rim/bell/choke regions can be triggered directly on the drum images.
+- Add velocity simulation from touch patterns or future gesture data.
+- Add more articulation-specific images beyond closed/open hi-hat.
+- Replace reused placeholder articulation sounds with higher-quality sample packs that are licensed for the app.
+- Evaluate native low-latency sampler and true choke groups after real-device timing measurements.
 - Review custom sound persistence behavior on iOS and Android physical devices.
 - Track Expo audit advisories and resolve them during a controlled Expo SDK upgrade instead of forcing npm's breaking fix.
-- Test setup deferred: avoid adding Jest/React Native test dependencies until the Expo SDK 56-compatible preset and CI runtime are selected deliberately.
+- React Native rendering tests deferred: keep current tests focused on pure logic until the Expo SDK 56-compatible Jest or component testing setup is selected deliberately.
+- Dev-only QA helper deferred: manual QA docs and pure tests cover this pass without adding production-leakage risk.
 - Haptics deferred: add only after real-device testing confirms it does not interfere with tap/audio timing.
 - Confirm final bundle/package identifier, app icon, splash art, and publisher/store metadata before external release.
 - Run internal alpha on real iOS and Android devices, including external music playback and custom audio import.

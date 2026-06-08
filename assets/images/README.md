@@ -30,11 +30,29 @@ The Drum Set screen uses individual movable piece PNGs. Keep hit boxes data-driv
 - `assets/images/drum-pieces/kick.png`: currently used by Drum Set.
 - `assets/images/drum-pieces/snare.png`: currently used by Drum Set.
 - `assets/images/drum-pieces/hi-hat.png`: currently used by Drum Set.
+- `assets/images/drum-pieces/hi-hat-closed.png`: currently used for the Closed hi-hat articulation when available.
+- `assets/images/drum-pieces/hi-hat-open.png`: currently used for the Open hi-hat articulation when available.
 - `assets/images/drum-pieces/crash.png`: currently used by Drum Set.
 - `assets/images/drum-pieces/ride.png`: currently used by Drum Set.
 - `assets/images/drum-pieces/high-tom.png`: currently used by Drum Set.
 - `assets/images/drum-pieces/mid-tom.png`: currently used by Drum Set.
 - `assets/images/drum-pieces/floor-tom.png`: currently used by Drum Set.
+
+## Articulation Image Naming
+
+Use the base drum-piece filename for default artwork, then add a lowercase hyphenated articulation suffix when a variant needs distinct art:
+
+- `assets/images/drum-pieces/{piece}.png`: default piece art.
+- `assets/images/drum-pieces/{piece}-{articulation}.png`: articulation-specific art.
+
+Current articulation-specific examples:
+
+- `assets/images/drum-pieces/hi-hat-closed.png`
+- `assets/images/drum-pieces/hi-hat-open.png`
+
+Do not use misspelled variants such as `hi-hat-clsed.png`; rename them to the preferred filename before wiring references.
+
+Future examples can include `snare-rimshot.png`, `ride-bell.png`, `crash-choke.png`, or `floor-tom-rim.png`. If an articulation image is missing or fails to load, the app should fall back to the base piece image and then the shape renderer.
 
 Keep titles and descriptions as native UI text, not baked into images.
 

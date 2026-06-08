@@ -34,6 +34,20 @@ export const drumAssets: Record<DrumAssetKey, DrumAssetDefinition> = {
     aspectRatio: 1.35,
     defaultVisualSize: { width: 0.2, height: 0.15 },
   },
+  hiHatClosed: {
+    key: 'hiHatClosed',
+    expectedPath: 'assets/images/drum-pieces/hi-hat-closed.png',
+    source: require('../../assets/images/drum-pieces/hi-hat-closed.png') as ImageSourcePropType,
+    aspectRatio: 1.35,
+    defaultVisualSize: { width: 0.2, height: 0.15 },
+  },
+  hiHatOpen: {
+    key: 'hiHatOpen',
+    expectedPath: 'assets/images/drum-pieces/hi-hat-open.png',
+    source: require('../../assets/images/drum-pieces/hi-hat-open.png') as ImageSourcePropType,
+    aspectRatio: 1.35,
+    defaultVisualSize: { width: 0.2, height: 0.15 },
+  },
   crash: {
     key: 'crash',
     expectedPath: 'assets/images/drum-pieces/crash.png',

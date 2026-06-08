@@ -20,6 +20,16 @@ export type SoundKey =
   | 'metronome'
   | 'subKick';
 
+export type DrumPieceId =
+  | 'kick'
+  | 'snare'
+  | 'hihat'
+  | 'crash'
+  | 'ride'
+  | 'highTom'
+  | 'midTom'
+  | 'floorTom';
+
 export type Point = {
   x: number;
   y: number;
@@ -31,14 +41,58 @@ export type DrumAssetKey =
   | 'kick'
   | 'snare'
   | 'hiHat'
+  | 'hiHatClosed'
+  | 'hiHatOpen'
   | 'crash'
   | 'ride'
   | 'highTom'
   | 'midTom'
   | 'floorTom';
 
+export type DrumChokeGroup = 'openHiHat' | 'crash';
+
+export type DrumArticulationId =
+  | 'kickNormal'
+  | 'kickSub'
+  | 'snareCenter'
+  | 'snareRimshot'
+  | 'snareCrossStick'
+  | 'hihatClosed'
+  | 'hihatOpen'
+  | 'crashHit'
+  | 'crashChoke'
+  | 'rideBow'
+  | 'rideBell'
+  | 'highTomCenter'
+  | 'highTomRim'
+  | 'midTomCenter'
+  | 'midTomRim'
+  | 'floorTomCenter'
+  | 'floorTomRim';
+
+export type DrumArticulation = {
+  id: DrumArticulationId;
+  label: string;
+  shortLabel?: string;
+  sound?: SoundKey;
+  imageAssetKey?: DrumAssetKey;
+  chokeGroup?: DrumChokeGroup;
+  chokes?: DrumChokeGroup[];
+  chokeSounds?: SoundKey[];
+  isDefault?: boolean;
+  actionOnly?: boolean;
+};
+
+export type DrumPieceArticulationConfig = {
+  pieceId: DrumPieceId;
+  defaultArticulationId: DrumArticulationId;
+  articulations: DrumArticulation[];
+};
+
+export type SelectedDrumArticulations = Partial<Record<DrumPieceId, DrumArticulationId>>;
+
 export type DrumPiece = {
-  id: string;
+  id: DrumPieceId;
   label: string;
   sound: SoundKey;
   position: Point;
@@ -61,6 +115,7 @@ export type DrumPiece = {
   };
   hitBoxShape?: DrumPieceShape;
   zIndex?: number;
+  articulationConfig?: DrumPieceArticulationConfig;
 };
 
 export type MidiGridSize = '3x4' | '4x4';
@@ -80,7 +135,7 @@ export type AppSettings = {
   masterVolume: number;
   showHitBoxes: boolean;
   lowLatencyMode: boolean;
-  hiHatArticulation: HiHatArticulation;
+  selectedDrumArticulations: SelectedDrumArticulations;
 };
 
 export type PersistedAppState = {

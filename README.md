@@ -55,6 +55,7 @@ Supported import targets depend on the platform and selected file format. Common
 npm run typecheck
 npm run lint
 npm run format:check
+npm test
 npm run validate
 ```
 
@@ -64,11 +65,13 @@ Formatting is enforced with Prettier. Use this command before submitting larger 
 npm run format
 ```
 
-`npm run validate` runs typecheck, Expo ESLint, and Prettier check. There is no test script configured yet.
+`npm run validate` runs typecheck, Expo ESLint, Prettier check, and the pure logic test suite.
 
 ## Manual QA
 
-Use `docs/FIRST_ROUND_QA.md` for the first-round alpha checklist covering iOS, Android, portrait/landscape, navigation, play modes, editing, persistence, custom sound import, external audio mixing, and ad banner spacing.
+Use `docs/FIRST_ROUND_QA.md` for the first-round alpha checklist covering iOS, Android, portrait/landscape, navigation, play modes, articulation regression, editing, persistence, custom sound import, external audio mixing, and ad banner spacing.
+
+Use `docs/QA_RUN_TEMPLATE.md` to record internal tester results or copy details into GitHub QA findings.
 
 ## Assets
 
@@ -96,7 +99,9 @@ npm run validate
 
 - Home screen with Start, Settings, mode selection, and placeholder promo carousel.
 - Drum Set screen with playable kick, snare, hi-hat, crash, ride, toms, editable dragged layout, local persistence, and reset.
-- Drum Set hi-hat supports a persisted Closed/Open articulation toggle; triggering Closed chokes any ringing bundled Open hi-hat pool where Expo audio allows.
+- Drum Set includes a persisted articulation system for kick Normal/Sub, snare Center/Rimshot/Cross-stick, hi-hat Closed/Open, crash Hit/Choke, ride Bow/Bell, and tom Center/Rim variants.
+- Hi-hat Closed/Open swaps the hi-hat artwork where assets are available; triggering Closed chokes any ringing bundled Open hi-hat pool where Expo audio allows.
+- Crash Choke pauses and rewinds the bundled crash player pool as a performance action.
 - Drum Set pieces use per-piece image assets through a central drum asset registry; current shape rendering remains the fallback and hit boxes stay data-driven.
 - MIDI Controller screen with 3x4 and 4x4 pad layouts, playable pads, label/color/default sound/custom file editing, local persistence, and reset.
 - Settings screen with persisted master volume, hit box visibility, low latency mode, and reset-all local data.
@@ -105,12 +110,14 @@ npm run validate
 - Code quality baseline is configured with Expo ESLint, Prettier, stricter TypeScript guardrails, VS Code recommendations, and CI validation.
 - First-round alpha polish includes persistent custom sound copies, safer storage parsing, schema versioning, reset confirmations, toast feedback, future image placeholder notes, and manual QA documentation.
 - Internal alpha prep includes placeholder iOS/Android identifiers, EAS profiles, issue templates, internal build docs, asset pipeline docs, and a simple app error boundary.
+- QA hardening includes pure logic tests for articulation mappings, selected articulation validation, old hi-hat setting migration, corrupted settings fallback, and drum position validation.
 
 ## Known Limitations
 
 - Audio latency is acceptable for an MVP but not yet tuned like a native low-latency sampler.
 - Overlapping playback uses a small player pool and can be improved later.
-- Hi-hat choke is implemented by pausing and rewinding pooled open hi-hat players, not by a dedicated native sampler choke group.
+- Cymbal choke behavior is implemented by pausing and rewinding pooled Expo audio players, not by dedicated native sampler choke groups.
+- Several articulation variants reuse synthetic placeholder sounds until higher-quality sample packs are selected.
 - Imported custom audio uses app-owned document storage, but playback still depends on platform codec support and selected file format.
 - Real ad provider integration is future work.
 - Deeper accessibility and automated tests need follow-up passes.

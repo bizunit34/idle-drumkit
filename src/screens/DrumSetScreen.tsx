@@ -12,19 +12,34 @@ import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
 import { AppButton } from '../components/AppButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
+import {
+  getArticulationConfig,
+  getChokedSounds,
+  resolveSelectedArticulation,
+} from '../data/drumArticulations';
 import { drumAssets } from '../data/drumAssets';
 import { defaultDrumPieces } from '../data/drumKit';
 import { colors, radii, spacing } from '../theme';
 import { clampDrumPiecePosition } from '../utils/layout';
-import type { AppSettings, HiHatArticulation, Point, SoundKey } from '../types';
+import type {
+  AppSettings,
+  DrumArticulation,
+  DrumAssetKey,
+  DrumPiece,
+  DrumPieceId,
+  Point,
+  SelectedDrumArticulations,
+  SoundKey,
+} from '../types';
 
 type Props = {
   settings: AppSettings;
   drumPositions: Record<string, Point>;
   onBack: () => void;
   onPlaySound: (sound: SoundKey) => void;
+  onChokeSound: (sound: SoundKey) => void;
   onSavePositions: (positions: Record<string, Point>) => void;
-  onSetHiHatArticulation: (articulation: HiHatArticulation) => void;
+  onSaveSelectedArticulations: (articulations: SelectedDrumArticulations) => void;
   onNotify: (message: string) => void;
 };
 
@@ -33,19 +48,63 @@ type BoardSize = {
   height: number;
 };
 
+type ResolvedImage = {
+  key: string;
+  source: NonNullable<DrumPiece['imageSource']>;
+  defaultVisualSize: {
+    width: number;
+    height: number;
+  };
+};
+
+const getImageCandidate = (
+  imageKey: DrumAssetKey | undefined,
+  failedImages: Record<string, boolean>,
+): ResolvedImage | undefined => {
+  if (!imageKey || failedImages[imageKey]) return undefined;
+  const asset = drumAssets[imageKey];
+  if (!asset.source) return undefined;
+  return {
+    key: imageKey,
+    source: asset.source,
+    defaultVisualSize: asset.defaultVisualSize,
+  };
+};
+
+const resolvePieceImage = (
+  piece: DrumPiece,
+  articulation: DrumArticulation,
+  failedImages: Record<string, boolean>,
+): ResolvedImage | undefined => {
+  const articulationImage = getImageCandidate(articulation.imageAssetKey, failedImages);
+  if (articulationImage) return articulationImage;
+
+  const pieceImage = getImageCandidate(piece.imageAssetKey, failedImages);
+  if (pieceImage) return pieceImage;
+
+  if (!piece.imageSource || failedImages[piece.id]) return undefined;
+  return {
+    key: piece.id,
+    source: piece.imageSource,
+    defaultVisualSize: piece.defaultVisualSize ?? piece.size,
+  };
+};
+
 export function DrumSetScreen({
   settings,
   drumPositions,
   onBack,
   onPlaySound,
+  onChokeSound,
   onSavePositions,
-  onSetHiHatArticulation,
+  onSaveSelectedArticulations,
   onNotify,
 }: Props) {
   const [editMode, setEditMode] = useState(false);
   const [positions, setPositions] = useState<Record<string, Point>>(drumPositions);
   const [boardSize, setBoardSize] = useState<BoardSize>({ width: 1, height: 1 });
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [selectedPieceId, setSelectedPieceId] = useState<DrumPieceId>('hihat');
 
   const pieces = useMemo(
     () =>
@@ -73,14 +132,43 @@ export function DrumSetScreen({
     setBoardSize({ width, height });
   };
 
-  const playPiece = (pieceId: string, sound: SoundKey) => {
-    if (pieceId === 'hihat') {
-      onPlaySound(settings.hiHatArticulation === 'open' ? 'openHihat' : 'closedHihat');
-      return;
-    }
-
-    onPlaySound(sound);
+  const saveSelectedArticulation = (pieceId: DrumPieceId, articulation: DrumArticulation) => {
+    if (articulation.actionOnly) return;
+    onSaveSelectedArticulations({
+      ...settings.selectedDrumArticulations,
+      [pieceId]: articulation.id,
+    });
+    onNotify(
+      `${defaultDrumPieces.find((piece) => piece.id === pieceId)?.label ?? 'Piece'} set to ${
+        articulation.label
+      }.`,
+    );
   };
+
+  const chokeArticulation = (articulation: DrumArticulation) => {
+    for (const sound of getChokedSounds(articulation)) {
+      onChokeSound(sound);
+    }
+    onNotify(`${articulation.label} sent.`);
+  };
+
+  const playPiece = (piece: DrumPiece) => {
+    const articulation = resolveSelectedArticulation(piece.id, settings.selectedDrumArticulations);
+    setSelectedPieceId(piece.id);
+    if (!articulation.sound) return;
+    onPlaySound(articulation.sound);
+  };
+
+  const selectedPiece = pieces.find((piece) => piece.id === selectedPieceId) ?? pieces[0];
+  const selectedConfig = selectedPiece ? getArticulationConfig(selectedPiece.id) : undefined;
+  const selectedArticulation = selectedPiece
+    ? resolveSelectedArticulation(selectedPiece.id, settings.selectedDrumArticulations)
+    : undefined;
+  const hiHatArticulation = resolveSelectedArticulation(
+    'hihat',
+    settings.selectedDrumArticulations,
+  );
+  const hiHatConfig = getArticulationConfig('hihat');
 
   return (
     <ScreenContainer>
@@ -99,41 +187,69 @@ export function DrumSetScreen({
         <View style={styles.articulationControl}>
           <Text style={styles.articulationLabel}>Hi-hat</Text>
           <View style={styles.segmented}>
-            <Pressable
-              onPress={() => onSetHiHatArticulation('closed')}
-              style={[
-                styles.segment,
-                settings.hiHatArticulation === 'closed' && styles.activeSegment,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  settings.hiHatArticulation === 'closed' && styles.activeSegmentText,
-                ]}
-              >
-                Closed
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => onSetHiHatArticulation('open')}
-              style={[
-                styles.segment,
-                settings.hiHatArticulation === 'open' && styles.activeSegment,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.segmentText,
-                  settings.hiHatArticulation === 'open' && styles.activeSegmentText,
-                ]}
-              >
-                Open
-              </Text>
-            </Pressable>
+            {hiHatConfig.articulations
+              .filter((articulation) => !articulation.actionOnly)
+              .map((articulation) => (
+                <Pressable
+                  key={articulation.id}
+                  onPress={() => saveSelectedArticulation('hihat', articulation)}
+                  style={[
+                    styles.segment,
+                    hiHatArticulation.id === articulation.id && styles.activeSegment,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      hiHatArticulation.id === articulation.id && styles.activeSegmentText,
+                    ]}
+                  >
+                    {articulation.shortLabel ?? articulation.label}
+                  </Text>
+                </Pressable>
+              ))}
           </View>
         </View>
       </View>
+      {selectedConfig && selectedPiece && selectedArticulation ? (
+        <View style={styles.performancePanel}>
+          <View style={styles.performanceHeader}>
+            <Text style={styles.performanceTitle}>Articulation</Text>
+            <Text style={styles.performanceSubtitle}>
+              {selectedPiece.label}: {selectedArticulation.label}
+            </Text>
+          </View>
+          <View style={styles.articulationChoices}>
+            {selectedConfig.articulations.map((articulation) => {
+              const active = selectedArticulation.id === articulation.id;
+              return (
+                <Pressable
+                  key={articulation.id}
+                  onPress={() =>
+                    articulation.actionOnly
+                      ? chokeArticulation(articulation)
+                      : saveSelectedArticulation(selectedConfig.pieceId, articulation)
+                  }
+                  style={[
+                    styles.articulationChoice,
+                    active && !articulation.actionOnly && styles.activeArticulationChoice,
+                    articulation.actionOnly && styles.actionArticulationChoice,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.articulationChoiceText,
+                      active && !articulation.actionOnly && styles.activeArticulationChoiceText,
+                    ]}
+                  >
+                    {articulation.shortLabel ?? articulation.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
       {editMode ? (
         <View style={styles.hint}>
           <Text style={styles.hintText}>
@@ -143,12 +259,13 @@ export function DrumSetScreen({
       ) : null}
       <View style={styles.stage} onLayout={onBoardLayout}>
         {pieces.map((piece) => {
-          const asset = piece.imageAssetKey ? drumAssets[piece.imageAssetKey] : undefined;
-          const imageSource = piece.imageSource ?? asset?.source;
-          const imageKey = piece.imageAssetKey ?? piece.id;
-          const resolvedImageSource =
-            imageSource && !failedImages[imageKey] ? imageSource : undefined;
-          const visualSize = piece.defaultVisualSize ?? asset?.defaultVisualSize ?? piece.size;
+          const articulation = resolveSelectedArticulation(
+            piece.id,
+            settings.selectedDrumArticulations,
+          );
+          const resolvedImage = resolvePieceImage(piece, articulation, failedImages);
+          const visualSize =
+            resolvedImage?.defaultVisualSize ?? piece.defaultVisualSize ?? piece.size;
           const visualWidth = visualSize.width * boardSize.width;
           const visualHeight = visualSize.height * boardSize.height;
           const width = piece.size.width * boardSize.width;
@@ -193,7 +310,7 @@ export function DrumSetScreen({
               key={piece.id}
               {...panResponder.panHandlers}
               onPress={() => {
-                if (!editMode) playPiece(piece.id, piece.sound);
+                if (!editMode) playPiece(piece);
               }}
               style={({ pressed }) => [
                 styles.piece,
@@ -207,12 +324,14 @@ export function DrumSetScreen({
                 pressed && !editMode && styles.hit,
               ]}
             >
-              {resolvedImageSource ? (
+              {resolvedImage ? (
                 <Image
-                  source={resolvedImageSource}
+                  source={resolvedImage.source}
                   resizeMode="contain"
                   accessibilityIgnoresInvertColors
-                  onError={() => setFailedImages((current) => ({ ...current, [imageKey]: true }))}
+                  onError={() =>
+                    setFailedImages((current) => ({ ...current, [resolvedImage.key]: true }))
+                  }
                   style={[
                     styles.pieceImage,
                     {
@@ -238,7 +357,7 @@ export function DrumSetScreen({
                   ]}
                 />
               )}
-              {resolvedImageSource && (settings.showHitBoxes || editMode) ? (
+              {resolvedImage && (settings.showHitBoxes || editMode) ? (
                 <View
                   pointerEvents="none"
                   style={[
@@ -310,6 +429,67 @@ const styles = StyleSheet.create({
   },
   activeSegmentText: {
     color: colors.black,
+  },
+  performancePanel: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  performanceHeader: {
+    minWidth: 136,
+  },
+  performanceTitle: {
+    color: colors.mutedText,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  performanceSubtitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: spacing.xs,
+  },
+  articulationChoices: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  articulationChoice: {
+    minHeight: 38,
+    minWidth: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.backgroundAlt,
+  },
+  activeArticulationChoice: {
+    borderColor: colors.cyan,
+    backgroundColor: `${colors.cyan}22`,
+  },
+  actionArticulationChoice: {
+    borderColor: colors.yellow,
+    backgroundColor: `${colors.yellow}18`,
+  },
+  articulationChoiceText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  activeArticulationChoiceText: {
+    color: colors.cyan,
   },
   hint: {
     marginHorizontal: spacing.md,

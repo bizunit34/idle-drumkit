@@ -9,3 +9,4 @@ assets/**/*.ico
 assets/**/*.wav
 package-lock.json
 *.tsbuildinfo
+.qa-test-build/

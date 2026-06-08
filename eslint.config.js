@@ -31,6 +31,7 @@ module.exports = defineConfig([
     ignores: [
       'node_modules/**',
       '.expo/**',
+      '.qa-test-build/**',
       'dist/**',
       'web-build/**',
       'ios/**',

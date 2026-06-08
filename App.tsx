@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import {
+  chokeDrumSound,
   configureDrumkitAudio,
   playDrumSound,
   releaseAudioPlayers,
@@ -23,7 +24,15 @@ import {
   saveSettings,
 } from './src/storage/appStorage';
 import { colors } from './src/theme';
-import type { AppSettings, MidiGridSize, MidiPad, Point, ScreenName, SoundKey } from './src/types';
+import type {
+  AppSettings,
+  MidiGridSize,
+  MidiPad,
+  Point,
+  ScreenName,
+  SelectedDrumArticulations,
+  SoundKey,
+} from './src/types';
 
 function DrumkitApp() {
   const [screen, setScreen] = useState<ScreenName>('home');
@@ -93,6 +102,10 @@ function DrumkitApp() {
       .catch(() => setNotice('Sound failed to play.'));
   };
 
+  const chokeSound = (sound: SoundKey) => {
+    chokeDrumSound(sound).catch(() => setNotice('Could not choke sound.'));
+  };
+
   const resetAll = () => {
     Alert.alert('Reset local data?', 'This restores settings, drum layout, and MIDI pads.', [
       { text: 'Cancel', style: 'cancel' },
@@ -132,12 +145,10 @@ function DrumkitApp() {
           drumPositions={drumPositions}
           onBack={() => setScreen('home')}
           onPlaySound={(sound) => playSound(sound)}
+          onChokeSound={chokeSound}
           onSavePositions={persistDrumPositions}
-          onSetHiHatArticulation={(hiHatArticulation) => {
-            persistSettings({ ...settings, hiHatArticulation });
-            setNotice(
-              hiHatArticulation === 'open' ? 'Hi-hat set to open.' : 'Hi-hat set to closed.',
-            );
+          onSaveSelectedArticulations={(selectedDrumArticulations: SelectedDrumArticulations) => {
+            persistSettings({ ...settings, selectedDrumArticulations });
           }}
           onNotify={setNotice}
         />
