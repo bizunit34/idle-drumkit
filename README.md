@@ -1,1 +1,118 @@
-# idle-drumkit
+# Drumkit
+
+Drumkit is an Expo React Native mobile app for idle drum playing. Keep the app open, tap drum regions or MIDI-style pads, and play along with audio from another app.
+
+## Setup
+
+```sh
+npm install
+```
+
+## Run
+
+```sh
+npm run ios
+npm run android
+```
+
+You can also start Metro directly:
+
+```sh
+npm start
+```
+
+## Internal Alpha
+
+Drumkit is configured for internal alpha preparation with placeholder app identifiers and EAS build profiles. See `docs/INTERNAL_ALPHA.md` for local run, Metro, Android internal build, iOS internal build, and tester distribution notes.
+
+Current placeholder bundle/package identifier:
+
+```text
+com.idledrumkit.drumkit
+```
+
+Confirm the final bundle/package identifier before app store release.
+
+## Placeholder Sounds
+
+The bundled sounds are tiny synthetic WAV files generated for this project. They are not copyrighted samples.
+
+```sh
+npm run generate:sounds
+```
+
+Generated files are written to `assets/sounds`.
+
+## Custom Sound Import
+
+MIDI pads can import local audio files through the platform document picker. Drumkit copies supported audio files into app-owned document storage before saving the pad assignment, so imports are more durable than temporary picker cache URIs. If an imported file cannot be found or played later, the app falls back to the pad's bundled default sound and shows a non-blocking status message.
+
+Supported import targets depend on the platform and selected file format. Common audio files such as WAV, MP3, M4A, AAC, and OGG are accepted by the app-level guard.
+
+## Validation
+
+```sh
+npm run typecheck
+npm run lint
+npm run format:check
+npm run validate
+```
+
+Formatting is enforced with Prettier. Use this command before submitting larger edits:
+
+```sh
+npm run format
+```
+
+`npm run validate` runs typecheck, Expo ESLint, and Prettier check. There is no test script configured yet.
+
+## Manual QA
+
+Use `docs/FIRST_ROUND_QA.md` for the first-round alpha checklist covering iOS, Android, portrait/landscape, navigation, play modes, editing, persistence, custom sound import, external audio mixing, and ad banner spacing.
+
+## Assets
+
+Build asset slots and expected filenames are documented in `assets/images/README.md`. The magenta-background transparency workflow and first recommended art assets are documented in `docs/ASSET_PIPELINE.md`.
+
+First visual seed assets are integrated on the Home screen:
+
+- `assets/images/mascot-source.png`
+- `assets/images/home-carousel-drum-set.png`
+- `assets/images/home-carousel-midi-pads.png`
+- `assets/images/home-carousel-custom-sounds.png`
+- `assets/images/sound-not-found.png`
+
+App icon, splash icon, Android adaptive icons, and favicon are still the existing placeholder build assets.
+
+## CI
+
+GitHub Actions runs on pushes to `main` and on pull requests. The workflow installs dependencies with `npm ci` and runs:
+
+```sh
+npm run validate
+```
+
+## MVP Status
+
+- Home screen with Start, Settings, mode selection, and placeholder promo carousel.
+- Drum Set screen with playable kick, snare, hi-hat, crash, ride, toms, editable dragged layout, local persistence, and reset.
+- Drum Set hi-hat supports a persisted Closed/Open articulation toggle; triggering Closed chokes any ringing bundled Open hi-hat pool where Expo audio allows.
+- Drum Set pieces use per-piece image assets through a central drum asset registry; current shape rendering remains the fallback and hit boxes stay data-driven.
+- MIDI Controller screen with 3x4 and 4x4 pad layouts, playable pads, label/color/default sound/custom file editing, local persistence, and reset.
+- Settings screen with persisted master volume, hit box visibility, low latency mode, and reset-all local data.
+- Audio helper built on `expo-audio`, configured to mix with other app audio and pre-warm bundled sound players.
+- Ad banner placeholder on play screens only. No real ad SDKs, IDs, secrets, purchases, auth, backend, or sync.
+- Code quality baseline is configured with Expo ESLint, Prettier, stricter TypeScript guardrails, VS Code recommendations, and CI validation.
+- First-round alpha polish includes persistent custom sound copies, safer storage parsing, schema versioning, reset confirmations, toast feedback, future image placeholder notes, and manual QA documentation.
+- Internal alpha prep includes placeholder iOS/Android identifiers, EAS profiles, issue templates, internal build docs, asset pipeline docs, and a simple app error boundary.
+
+## Known Limitations
+
+- Audio latency is acceptable for an MVP but not yet tuned like a native low-latency sampler.
+- Overlapping playback uses a small player pool and can be improved later.
+- Hi-hat choke is implemented by pausing and rewinding pooled open hi-hat players, not by a dedicated native sampler choke group.
+- Imported custom audio uses app-owned document storage, but playback still depends on platform codec support and selected file format.
+- Real ad provider integration is future work.
+- Deeper accessibility and automated tests need follow-up passes.
+- Haptic feedback is deferred until real-device timing and dependency impact are reviewed.
+- `npm audit` reports moderate Expo CLI/config transitive advisories. The available npm fix requires a breaking Expo version change, so this should be handled during a controlled Expo upgrade.

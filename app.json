@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Drumkit",
+    "slug": "drumkit",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "drumkit",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.idledrumkit.drumkit",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.idledrumkit.drumkit",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
