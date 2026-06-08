@@ -8,11 +8,11 @@ import {
   Text,
   TextInput,
   View,
-  useWindowDimensions,
   type ImageSourcePropType,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
+import { AppModalSheet } from '../components/AppModalSheet';
 import { AppButton } from '../components/AppButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -72,8 +72,8 @@ export function MidiControllerScreen({
   onNotify,
 }: Props) {
   const [selectedPadId, setSelectedPadId] = useState(pads[0]?.id);
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [soundImageFailed, setSoundImageFailed] = useState(false);
-  const { width } = useWindowDimensions();
   const columns = gridSize === '3x4' ? 3 : 4;
   const visiblePads = pads.slice(0, gridSize === '3x4' ? 12 : 16);
   const selectedPad = useMemo(
@@ -155,33 +155,18 @@ export function MidiControllerScreen({
         onBack={onBack}
       />
       <View style={styles.toolbar}>
-        <View style={styles.segmented}>
-          <Pressable
-            onPress={() => onSaveGridSize('3x4')}
-            style={[styles.segment, gridSize === '3x4' && styles.activeSegment]}
-          >
-            <Text style={[styles.segmentText, gridSize === '3x4' && styles.activeSegmentText]}>
-              3x4
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onSaveGridSize('4x4')}
-            style={[styles.segment, gridSize === '4x4' && styles.activeSegment]}
-          >
-            <Text style={[styles.segmentText, gridSize === '4x4' && styles.activeSegmentText]}>
-              4x4
-            </Text>
-          </Pressable>
-        </View>
-        <AppButton label="Reset Pads" variant="danger" onPress={resetPads} />
+        <AppButton label="Controls" variant="secondary" onPress={() => setControlsOpen(true)} />
       </View>
-      <View style={[styles.content, width < 760 && styles.stacked]}>
+      <ScrollView style={styles.gridScroll} contentContainerStyle={styles.gridScrollContent}>
         <View style={styles.controllerSurface}>
           <View style={styles.padGrid}>
             {visiblePads.map((pad) => (
               <Pressable
                 key={pad.id}
-                onLongPress={() => setSelectedPadId(pad.id)}
+                onLongPress={() => {
+                  setSelectedPadId(pad.id);
+                  setControlsOpen(true);
+                }}
                 onPress={() => {
                   setSelectedPadId(pad.id);
                   onPlayPad(pad);
@@ -205,6 +190,32 @@ export function MidiControllerScreen({
             ))}
           </View>
         </View>
+      </ScrollView>
+      <AppModalSheet
+        visible={controlsOpen}
+        title="MIDI Controls"
+        presentation="playControls"
+        onClose={() => setControlsOpen(false)}
+      >
+        <View style={styles.segmented}>
+          <Pressable
+            onPress={() => onSaveGridSize('3x4')}
+            style={[styles.segment, gridSize === '3x4' && styles.activeSegment]}
+          >
+            <Text style={[styles.segmentText, gridSize === '3x4' && styles.activeSegmentText]}>
+              3x4
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onSaveGridSize('4x4')}
+            style={[styles.segment, gridSize === '4x4' && styles.activeSegment]}
+          >
+            <Text style={[styles.segmentText, gridSize === '4x4' && styles.activeSegmentText]}>
+              4x4
+            </Text>
+          </Pressable>
+        </View>
+        <AppButton label="Reset Pads" variant="danger" onPress={resetPads} />
         {selectedPad && (
           <ScrollView style={styles.editor} contentContainerStyle={styles.editorContent}>
             <Text style={styles.editorTitle}>Pad Edit</Text>
@@ -274,7 +285,7 @@ export function MidiControllerScreen({
             ) : null}
           </ScrollView>
         )}
-      </View>
+      </AppModalSheet>
       <AdBannerPlaceholder />
     </ScreenContainer>
   );
@@ -283,12 +294,19 @@ export function MidiControllerScreen({
 const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: spacing.md,
     padding: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.backgroundAlt,
+  },
+  gridScroll: {
+    flex: 1,
+  },
+  gridScrollContent: {
+    flexGrow: 1,
+    padding: spacing.md,
   },
   segmented: {
     flexDirection: 'row',
@@ -314,17 +332,8 @@ const styles = StyleSheet.create({
   activeSegmentText: {
     color: colors.black,
   },
-  content: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  stacked: {
-    flexDirection: 'column',
-  },
   controllerSurface: {
-    flex: 2,
+    flex: 1,
     minHeight: 300,
     borderRadius: radii.lg,
     padding: spacing.lg,

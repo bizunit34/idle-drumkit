@@ -12,6 +12,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { AppButton } from '../components/AppButton';
+import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
 import { ModeSelectOverlay } from '../components/ModeSelectOverlay';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { colors, radii, spacing } from '../theme';
@@ -116,7 +117,7 @@ export function HomeScreen({ navigate }: Props) {
   return (
     <ScreenContainer>
       <View style={[styles.container, compact && styles.compact]}>
-        <View style={styles.leftPanel}>
+        <View style={[styles.leftPanel, compact && styles.compactLeftPanel]}>
           <View style={styles.mascotPlaceholder}>
             {shouldShowMascot ? (
               <Image
@@ -191,11 +192,6 @@ export function HomeScreen({ navigate }: Props) {
             })}
           </ScrollView>
           <View style={styles.carouselControls}>
-            <AppButton
-              label="Prev"
-              variant="secondary"
-              onPress={() => scrollToSlide(slideIndex - 1)}
-            />
             <View style={styles.dots}>
               {slides.map((item, index) => (
                 <Pressable
@@ -206,11 +202,6 @@ export function HomeScreen({ navigate }: Props) {
                 />
               ))}
             </View>
-            <AppButton
-              label="Next"
-              variant="secondary"
-              onPress={() => scrollToSlide(slideIndex + 1)}
-            />
           </View>
         </View>
       </View>
@@ -222,6 +213,7 @@ export function HomeScreen({ navigate }: Props) {
         onNavigate={navigate}
         onImageError={setImageFailed}
       />
+      <AdBannerPlaceholder />
     </ScreenContainer>
   );
 }
@@ -236,11 +228,20 @@ const styles = StyleSheet.create({
   },
   compact: {
     flexDirection: 'column',
+    gap: spacing.lg,
   },
   leftPanel: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
     justifyContent: 'center',
     minWidth: 260,
+  },
+  compactLeftPanel: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: spacing.md,
   },
   mascotPlaceholder: {
     width: 96,
@@ -251,7 +252,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.lg,
   },
   mascotHead: {
     width: 34,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
   },
   cardPressed: {
     opacity: 0.78,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   carousel: {
     flex: 1,
-    minHeight: 300,
+    minHeight: 260,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -305,9 +305,10 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   slideArt: {
-    height: 148,
+    flex: 1,
+    minHeight: 108,
+    maxHeight: 180,
     borderRadius: radii.lg,
-    borderWidth: 1,
     backgroundColor: colors.surfaceMuted,
     justifyContent: 'center',
     alignItems: 'center',
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
   carouselControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,

@@ -1,7 +1,9 @@
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
 import { AppButton } from '../components/AppButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { VolumeSlider } from '../components/VolumeSlider';
 import { colors, radii, spacing } from '../theme';
 import type { AppSettings } from '../types';
 
@@ -34,30 +36,11 @@ export function SettingsScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.row}>
-          <View style={styles.rowText}>
-            <Text style={styles.label}>Master Volume</Text>
-            <Text style={styles.value}>{Math.round(settings.masterVolume * 100)}%</Text>
-          </View>
-          <View style={styles.volumeButtons}>
-            <AppButton
-              label="-"
-              onPress={() =>
-                update(
-                  { masterVolume: Math.max(0, settings.masterVolume - 0.1) },
-                  'Master volume saved.',
-                )
-              }
-            />
-            <AppButton
-              label="+"
-              onPress={() =>
-                update(
-                  { masterVolume: Math.min(1, settings.masterVolume + 0.1) },
-                  'Master volume saved.',
-                )
-              }
-            />
-          </View>
+          <VolumeSlider
+            value={settings.masterVolume}
+            onChange={(masterVolume) => onSaveSettings({ ...settings, masterVolume })}
+            onSlidingComplete={(masterVolume) => update({ masterVolume }, 'Master volume saved.')}
+          />
         </View>
         <View style={styles.row}>
           <View style={styles.rowText}>
@@ -93,6 +76,7 @@ export function SettingsScreen({
           <AppButton label="Reset All Local App Data" variant="danger" onPress={onResetAllData} />
         </View>
       </ScrollView>
+      <AdBannerPlaceholder />
     </ScreenContainer>
   );
 }
@@ -125,19 +109,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
   },
-  value: {
-    color: colors.cyan,
-    fontSize: 15,
-    marginTop: spacing.xs,
-  },
   help: {
     color: colors.mutedText,
     fontSize: 13,
     marginTop: spacing.xs,
-  },
-  volumeButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
   },
   dangerZone: {
     gap: spacing.md,

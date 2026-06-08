@@ -18,6 +18,7 @@ import {
 } from './src/audio/audioService';
 import { AppToast } from './src/components/AppToast';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { buildDefaultDrumLayoutProfiles } from './src/data/drumLayoutProfiles';
 import { defaultMidiPads } from './src/data/midiPads';
 import { DrumSetScreen } from './src/screens/DrumSetScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -27,7 +28,8 @@ import {
   defaultSettings,
   loadAppState,
   resetAllAppData,
-  saveDrumPositions,
+  saveActiveDrumProfile,
+  saveDrumLayoutProfiles,
   saveMidiGridSize,
   saveMidiPads,
   saveSettings,
@@ -35,9 +37,10 @@ import {
 import { colors } from './src/theme';
 import type {
   AppSettings,
+  DrumLayoutProfile,
+  DrumLayoutProfileId,
   MidiGridSize,
   MidiPad,
-  Point,
   ScreenName,
   SelectedDrumArticulations,
   SoundKey,
@@ -46,7 +49,10 @@ import type {
 function DrumkitApp() {
   const [screen, setScreen] = useState<ScreenName>('home');
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  const [drumPositions, setDrumPositions] = useState<Record<string, Point>>({});
+  const [activeDrumProfileId, setActiveDrumProfileId] = useState<DrumLayoutProfileId>('default');
+  const [drumLayoutProfiles, setDrumLayoutProfiles] = useState<
+    Record<DrumLayoutProfileId, DrumLayoutProfile>
+  >(buildDefaultDrumLayoutProfiles);
   const [midiGridSize, setMidiGridSize] = useState<MidiGridSize>('4x4');
   const [midiPads, setMidiPads] = useState<MidiPad[]>(defaultMidiPads);
   const [loaded, setLoaded] = useState(false);
@@ -58,7 +64,8 @@ function DrumkitApp() {
       .then((state) => {
         if (!mounted) return;
         setSettings(state.settings);
-        setDrumPositions(state.drumPositions);
+        setActiveDrumProfileId(state.activeDrumProfileId);
+        setDrumLayoutProfiles(state.drumLayoutProfiles);
         setMidiGridSize(state.midiGridSize);
         setMidiPads(state.midiPads);
       })
@@ -88,9 +95,14 @@ function DrumkitApp() {
     saveSettings(next).catch(() => setNotice('Could not save settings.'));
   };
 
-  const persistDrumPositions = (next: Record<string, Point>) => {
-    setDrumPositions(next);
-    saveDrumPositions(next).catch(() => setNotice('Could not save drum layout.'));
+  const persistActiveDrumProfile = (next: DrumLayoutProfileId) => {
+    setActiveDrumProfileId(next);
+    saveActiveDrumProfile(next).catch(() => setNotice('Could not save drum profile.'));
+  };
+
+  const persistDrumLayoutProfiles = (next: Record<DrumLayoutProfileId, DrumLayoutProfile>) => {
+    setDrumLayoutProfiles(next);
+    saveDrumLayoutProfiles(next).catch(() => setNotice('Could not save drum profile layout.'));
   };
 
   const persistMidiGridSize = (next: MidiGridSize) => {
@@ -125,7 +137,8 @@ function DrumkitApp() {
           resetAllAppData()
             .then((state) => {
               setSettings(state.settings);
-              setDrumPositions(state.drumPositions);
+              setActiveDrumProfileId(state.activeDrumProfileId);
+              setDrumLayoutProfiles(state.drumLayoutProfiles);
               setMidiGridSize(state.midiGridSize);
               setMidiPads(state.midiPads);
               setScreen('home');
@@ -151,11 +164,13 @@ function DrumkitApp() {
       return (
         <DrumSetScreen
           settings={settings}
-          drumPositions={drumPositions}
+          activeProfileId={activeDrumProfileId}
+          drumLayoutProfiles={drumLayoutProfiles}
           onBack={() => setScreen('home')}
           onPlaySound={(sound) => playSound(sound)}
           onChokeSound={chokeSound}
-          onSavePositions={persistDrumPositions}
+          onSaveActiveProfile={persistActiveDrumProfile}
+          onSaveLayoutProfiles={persistDrumLayoutProfiles}
           onSaveSelectedArticulations={(selectedDrumArticulations: SelectedDrumArticulations) => {
             persistSettings({ ...settings, selectedDrumArticulations });
           }}

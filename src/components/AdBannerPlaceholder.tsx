@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { colors } from '../theme';
 
 type Props = {
@@ -6,8 +6,10 @@ type Props = {
 };
 
 export function AdBannerPlaceholder({ compact = false }: Props) {
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
   return (
-    <View style={[styles.container, compact && styles.compact]}>
+    <View style={[styles.container, (compact || landscape) && styles.compact]}>
       <Text style={styles.text}>Ad banner placeholder</Text>
     </View>
   );
@@ -15,7 +17,7 @@ export function AdBannerPlaceholder({ compact = false }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 54,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
     borderTopColor: colors.border,
@@ -23,7 +25,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
   },
   compact: {
-    height: 34,
+    minHeight: 48,
   },
   text: {
     color: colors.mutedText,

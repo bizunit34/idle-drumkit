@@ -99,13 +99,17 @@ npm run validate
 
 - Home screen with Start, Settings, mode selection, and placeholder promo carousel.
 - Home screen uses a swipeable carousel with contain-rendered artwork and a modal mode-selection overlay.
+- Play-surface-first cleanup removes carousel Prev/Next controls, makes mode cards fully tappable, and keeps Home artwork inside its card without inner borders.
 - Drum Set screen with playable kick, snare, hi-hat, crash, ride, toms, editable dragged layout, local persistence, and reset.
 - Drum Set includes a persisted articulation system for kick Normal/Sub, snare Center/Rimshot/Cross-stick, hi-hat Closed/Open, crash Hit/Choke, ride Bow/Bell, and tom Center/Rim variants.
 - Hi-hat Closed/Open swaps the hi-hat artwork where assets are available; triggering Closed chokes any ringing bundled Open hi-hat pool where Expo audio allows.
 - Crash Choke pauses and rewinds the bundled crash player pool as a performance action.
 - Drum Set pieces use per-piece image assets through a central drum asset registry; current shape rendering remains the fallback and hit boxes stay data-driven.
+- Drum Set controls live in a play controls overlay, with Default, Custom 1, and Custom 2 layout profiles plus per-piece size adjustment in edit mode.
 - MIDI Controller screen with 3x4 and 4x4 pad layouts, playable pads, label/color/default sound/custom file editing, local persistence, and reset.
+- MIDI Controller editing lives in a controls overlay so the pad grid stays dominant.
 - Settings screen with persisted master volume, hit box visibility, low latency mode, and reset-all local data.
+- Settings uses a touch slider for master volume with a live percentage tooltip while dragging.
 - Audio helper built on `expo-audio`, configured to mix with other app audio and pre-warm bundled sound players.
 - Ad banner placeholder on play screens only. No real ad SDKs, IDs, secrets, purchases, auth, backend, or sync.
 - Code quality baseline is configured with Expo ESLint, Prettier, stricter TypeScript guardrails, VS Code recommendations, and CI validation.
@@ -113,6 +117,7 @@ npm run validate
 - Internal alpha prep includes placeholder iOS/Android identifiers, EAS profiles, issue templates, internal build docs, asset pipeline docs, and a simple app error boundary.
 - QA hardening includes pure logic tests for articulation mappings, selected articulation validation, old hi-hat setting migration, corrupted settings fallback, and drum position validation.
 - Physical-device layout QA fixes include Settings scrolling, Android top safe-area padding, and a landscape Drum Set layout that prioritizes the kit surface.
+- Standardized ad banner placeholder appears across app screens as a quiet reserved bottom area. Future real ads should use provider test ads during development and adaptive banner sizing.
 
 ## Known Limitations
 

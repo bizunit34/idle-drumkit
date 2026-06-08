@@ -35,6 +35,15 @@ export type Point = {
   y: number;
 };
 
+export type DrumLayoutProfileId = 'default' | 'custom1' | 'custom2';
+
+export type DrumLayoutProfile = {
+  id: DrumLayoutProfileId;
+  label: string;
+  positions: Partial<Record<DrumPieceId, Point>>;
+  scales: Partial<Record<DrumPieceId, number>>;
+};
+
 export type DrumPieceShape = 'circle' | 'oval' | 'rect';
 
 export type DrumAssetKey =
@@ -141,6 +150,8 @@ export type AppSettings = {
 export type PersistedAppState = {
   settings: AppSettings;
   drumPositions: Record<string, Point>;
+  activeDrumProfileId: DrumLayoutProfileId;
+  drumLayoutProfiles: Record<DrumLayoutProfileId, DrumLayoutProfile>;
   midiGridSize: MidiGridSize;
   midiPads: MidiPad[];
 };

@@ -33,13 +33,13 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 - Tap outside the overlay or Close.
 - Expected: overlay dismisses cleanly.
 - Tap Drum Set and MIDI Controller cards in the overlay.
-- Expected: each screen opens and Back returns Home.
-- Tap Drum Set and MIDI Controller cards.
+- Expected: each full card is tappable, no separate Open link appears, each screen opens, and Back returns Home.
+- Tap Drum Set and MIDI Controller carousel cards.
 - Expected: each screen opens and Back returns Home.
 - Swipe the carousel horizontally.
 - Expected: cards snap cleanly, artwork is fully visible, and titles/descriptions remain native text.
-- Tap the carousel dots, Prev, and Next.
-- Expected: navigation changes cards; Prev and Next wrap at either end.
+- Tap the carousel dots.
+- Expected: navigation changes cards and no Prev/Next buttons are visible.
 - Tap the drum kit and MIDI carousel cards.
 - Expected: the relevant mode opens. Tap the custom sounds carousel card.
 - Expected: the mode-selection overlay opens.
@@ -49,8 +49,9 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 - Open Drum Set with Edit Layout off.
 - Tap kick, snare, hi-hat, crash, ride, high tom, mid tom, and floor tom.
 - Expected: each visible piece plays its assigned bundled sound and shows a press state.
-- In landscape, confirm the kit surface dominates the screen and controls are in the compact side rail.
-- Expected: Back, Edit, Reset, hi-hat, and articulation controls remain reachable without covering the kit surface.
+- In landscape, confirm the kit surface dominates the screen and controls are hidden until opened.
+- Tap Controls.
+- Expected: the overlay includes Edit Layout, Reset Layout, profile selection, hi-hat Closed/Open, selected piece articulations, and piece sizing in edit mode.
 - Toggle hi-hat between Closed and Open, then tap the hi-hat.
 - Expected: Closed plays the staccato closed hi-hat sample and Open plays the ringing open hi-hat sample.
 - Expected: the visible hi-hat swaps between closed/open artwork when both articulation images are available, and falls back gracefully if either image fails.
@@ -66,6 +67,10 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 - Expected: each tom keeps its selected articulation and remains draggable only in edit mode.
 - Fully reload the app after changing several articulations.
 - Expected: selected articulations persist after reload, including hi-hat Closed/Open.
+- Switch Default, Custom 1, and Custom 2 profiles.
+- Expected: each profile preserves its own positions and piece sizing.
+- In Edit Layout, select kick, snare, or hi-hat and use Larger/Smaller.
+- Expected: the piece resizes, stays on-screen, and the size persists after leaving and returning.
 
 ## Drum Set Articulation Regression
 
@@ -156,6 +161,8 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Leave Settings and return.
 - Expected: settings remain changed.
 - Expected: Show Hit Boxes visibly affects outlines on Drum Set and MIDI Controller screens.
+- Drag the Master Volume slider.
+- Expected: the percentage tooltip appears while dragging and the value persists.
 - In portrait and landscape, scroll Settings to Local Data.
 - Expected: Local Data and Reset All Local App Data are reachable and not hidden behind the navigation/gesture area.
 
@@ -173,8 +180,17 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 
 ## Ad Banner Spacing
 
-- Open Drum Set and MIDI Controller.
-- Expected: the placeholder banner reserves space at the bottom and does not overlap playable controls.
+- Open Home, Drum Set, MIDI Controller, and Settings.
+- Expected: the standardized placeholder banner reserves bottom space and does not overlap primary controls or play surfaces.
+
+## MIDI Controls Overlay
+
+- Open MIDI Controller.
+- Expected: the pad grid is the dominant visible content and the large editor panel is hidden.
+- Tap a pad.
+- Expected: the pad plays immediately and becomes selected for editing.
+- Long-press a pad or tap Controls.
+- Expected: a readable controls overlay opens with 3x4/4x4, Reset Pads, label, accent color, default sound, and custom audio controls.
 
 ## Safe Area And Floating Controls
 

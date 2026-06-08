@@ -1,4 +1,9 @@
 import {
+  buildDefaultDrumLayoutProfiles,
+  validateDrumLayoutProfileId,
+  validateDrumLayoutProfiles,
+} from '../data/drumLayoutProfiles';
+import {
   getDefaultSelectedDrumArticulations,
   isDrumPieceId,
   validateSelectedDrumArticulations,
@@ -7,6 +12,8 @@ import { defaultDrumPieces } from '../data/drumKit';
 import { buildResetMidiPads, mergeStoredMidiPads } from '../data/padUtils';
 import type {
   AppSettings,
+  DrumLayoutProfile,
+  DrumLayoutProfileId,
   HiHatArticulation,
   MidiGridSize,
   MidiPad,
@@ -21,6 +28,8 @@ export const defaultSettings: AppSettings = {
   lowLatencyMode: true,
   selectedDrumArticulations: getDefaultSelectedDrumArticulations(),
 };
+
+export const defaultDrumLayoutProfiles = buildDefaultDrumLayoutProfiles();
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -102,6 +111,17 @@ export function validateDrumPositions(value: unknown): Record<string, Point> {
     };
   }
   return positions;
+}
+
+export function validateActiveDrumProfileId(value: unknown): DrumLayoutProfileId {
+  return validateDrumLayoutProfileId(value);
+}
+
+export function validateStoredDrumLayoutProfiles(
+  value: unknown,
+  migratedPositions: Record<string, Point>,
+): Record<DrumLayoutProfileId, DrumLayoutProfile> {
+  return validateDrumLayoutProfiles(value, migratedPositions);
 }
 
 function validateMidiPad(value: unknown): MidiPad | null {

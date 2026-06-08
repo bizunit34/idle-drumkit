@@ -84,7 +84,6 @@ export function ModeSelectOverlay({
                   </View>
                   <Text style={styles.cardTitle}>{option.title}</Text>
                   <Text style={styles.cardBody}>{option.body}</Text>
-                  <Text style={styles.action}>Open</Text>
                 </Pressable>
               );
             })}
@@ -181,12 +180,5 @@ const styles = StyleSheet.create({
     color: colors.mutedText,
     fontSize: 13,
     lineHeight: 18,
-  },
-  action: {
-    color: colors.cyan,
-    fontSize: 13,
-    fontWeight: '900',
-    marginTop: 'auto',
-    textTransform: 'uppercase',
   },
 });

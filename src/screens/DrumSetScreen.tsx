@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Image,
   PanResponder,
   Pressable,
@@ -10,6 +11,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
+import { AppModalSheet } from '../components/AppModalSheet';
 import { AppButton } from '../components/AppButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -26,6 +28,8 @@ import type {
   AppSettings,
   DrumArticulation,
   DrumAssetKey,
+  DrumLayoutProfile,
+  DrumLayoutProfileId,
   DrumPiece,
   DrumPieceId,
   Point,
@@ -35,11 +39,13 @@ import type {
 
 type Props = {
   settings: AppSettings;
-  drumPositions: Record<string, Point>;
+  activeProfileId: DrumLayoutProfileId;
+  drumLayoutProfiles: Record<DrumLayoutProfileId, DrumLayoutProfile>;
   onBack: () => void;
   onPlaySound: (sound: SoundKey) => void;
   onChokeSound: (sound: SoundKey) => void;
-  onSavePositions: (positions: Record<string, Point>) => void;
+  onSaveActiveProfile: (profileId: DrumLayoutProfileId) => void;
+  onSaveLayoutProfiles: (profiles: Record<DrumLayoutProfileId, DrumLayoutProfile>) => void;
   onSaveSelectedArticulations: (articulations: SelectedDrumArticulations) => void;
   onNotify: (message: string) => void;
 };
@@ -93,41 +99,97 @@ const resolvePieceImage = (
 
 export function DrumSetScreen({
   settings,
-  drumPositions,
+  activeProfileId,
+  drumLayoutProfiles,
   onBack,
   onPlaySound,
   onChokeSound,
-  onSavePositions,
+  onSaveActiveProfile,
+  onSaveLayoutProfiles,
   onSaveSelectedArticulations,
   onNotify,
 }: Props) {
   const [editMode, setEditMode] = useState(false);
-  const [positions, setPositions] = useState<Record<string, Point>>(drumPositions);
+  const [controlsOpen, setControlsOpen] = useState(false);
+  const activeProfile = drumLayoutProfiles[activeProfileId];
+  const [draftLayout, setDraftLayout] = useState<{
+    profileId: DrumLayoutProfileId;
+    positions: Partial<Record<DrumPieceId, Point>>;
+  } | null>(null);
   const [boardSize, setBoardSize] = useState<BoardSize>({ width: 1, height: 1 });
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [selectedPieceId, setSelectedPieceId] = useState<DrumPieceId>('hihat');
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const landscape = windowWidth > windowHeight;
 
+  const positions =
+    draftLayout?.profileId === activeProfileId ? draftLayout.positions : activeProfile.positions;
+
   const pieces = useMemo(
     () =>
       defaultDrumPieces
-        .map((piece) => ({
-          ...piece,
-          position: positions[piece.id] ?? piece.position,
-        }))
+        .map((piece): DrumPiece => {
+          const scale = activeProfile.scales[piece.id] ?? 1;
+          const scaledPiece: DrumPiece = {
+            ...piece,
+            position: positions[piece.id] ?? piece.position,
+            size: {
+              width: piece.size.width * scale,
+              height: piece.size.height * scale,
+            },
+          };
+
+          if (piece.defaultVisualSize) {
+            scaledPiece.defaultVisualSize = {
+              width: piece.defaultVisualSize.width * scale,
+              height: piece.defaultVisualSize.height * scale,
+            };
+          }
+
+          return scaledPiece;
+        })
         .sort((left, right) => (left.zIndex ?? 0) - (right.zIndex ?? 0)),
-    [positions],
+    [activeProfile.scales, positions],
   );
 
-  const persistPositions = (next: Record<string, Point>) => {
-    setPositions(next);
-    onSavePositions(next);
+  const persistProfilePatch = (patch: Partial<DrumLayoutProfile>) => {
+    onSaveLayoutProfiles({
+      ...drumLayoutProfiles,
+      [activeProfileId]: {
+        ...activeProfile,
+        ...patch,
+      },
+    });
+  };
+
+  const persistPositions = (next: Partial<Record<DrumPieceId, Point>>) => {
+    setDraftLayout({ profileId: activeProfileId, positions: next });
+    persistProfilePatch({ positions: next });
   };
 
   const resetLayout = () => {
-    persistPositions({});
-    onNotify('Drum layout reset.');
+    Alert.alert('Reset layout?', `This resets ${activeProfile.label}.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset',
+        style: 'destructive',
+        onPress: () => {
+          persistPositions({});
+          persistProfilePatch({ positions: {}, scales: {} });
+          onNotify('Drum layout reset.');
+        },
+      },
+    ]);
+  };
+
+  const setPieceScale = (pieceId: DrumPieceId, nextScale: number) => {
+    const scale = Math.min(1.45, Math.max(0.72, nextScale));
+    persistProfilePatch({
+      scales: {
+        ...activeProfile.scales,
+        [pieceId]: scale,
+      },
+    });
   };
 
   const onBoardLayout = (event: LayoutChangeEvent) => {
@@ -200,6 +262,81 @@ export function DrumSetScreen({
           ))}
       </View>
     </View>
+  );
+
+  const renderProfileControl = () => (
+    <View style={styles.controlGroup}>
+      <Text style={styles.controlGroupTitle}>Layout Profile</Text>
+      <View style={styles.profileRow}>
+        {Object.values(drumLayoutProfiles).map((profile) => (
+          <Pressable
+            key={profile.id}
+            onPress={() => onSaveActiveProfile(profile.id)}
+            style={[styles.profileChip, activeProfileId === profile.id && styles.activeProfileChip]}
+          >
+            <Text
+              style={[
+                styles.profileChipText,
+                activeProfileId === profile.id && styles.activeProfileChipText,
+              ]}
+            >
+              {profile.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderSizeControl = () => {
+    if (!editMode || !selectedPiece) return null;
+    const currentScale = activeProfile.scales[selectedPiece.id] ?? 1;
+    return (
+      <View style={styles.controlGroup}>
+        <Text style={styles.controlGroupTitle}>Piece Size</Text>
+        <Text style={styles.controlHelp}>
+          {selectedPiece.label}: {Math.round(currentScale * 100)}%
+        </Text>
+        <View style={styles.sizeButtons}>
+          <AppButton
+            label="Smaller"
+            variant="secondary"
+            onPress={() => setPieceScale(selectedPiece.id, currentScale - 0.08)}
+          />
+          <AppButton
+            label="Larger"
+            variant="secondary"
+            onPress={() => setPieceScale(selectedPiece.id, currentScale + 0.08)}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  const renderControlsContent = () => (
+    <>
+      <View style={styles.controlGroup}>
+        <Text style={styles.controlGroupTitle}>Layout</Text>
+        <View style={styles.sizeButtons}>
+          <AppButton
+            label={editMode ? 'Done Editing' : 'Edit Layout'}
+            variant={editMode ? 'primary' : 'secondary'}
+            onPress={() => setEditMode((value) => !value)}
+          />
+          <AppButton label="Reset Layout" variant="danger" onPress={resetLayout} />
+        </View>
+      </View>
+      {renderProfileControl()}
+      {renderHiHatControl()}
+      {renderPerformancePanel()}
+      {renderSizeControl()}
+      <View style={styles.controlGroup}>
+        <Text style={styles.controlGroupTitle}>Hit Boxes</Text>
+        <Text style={styles.controlHelp}>
+          Use Settings to turn hit-box overlays on or off globally.
+        </Text>
+      </View>
+    </>
   );
 
   const renderPerformancePanel = () =>
@@ -275,7 +412,10 @@ export function DrumSetScreen({
               boardSize.width,
               boardSize.height,
             );
-            setPositions((current) => ({ ...current, [piece.id]: nextPosition }));
+            setDraftLayout({
+              profileId: activeProfileId,
+              positions: { ...positions, [piece.id]: nextPosition },
+            });
           },
           onPanResponderRelease: (_, gesture) => {
             const nextPosition = clampDrumPiecePosition(
@@ -370,32 +510,20 @@ export function DrumSetScreen({
     return (
       <ScreenContainer>
         <View style={styles.landscapeShell}>
-          {renderStage()}
-          <View style={styles.sideRail}>
-            <View style={styles.sideHeader}>
-              <AppButton label="Back" variant="secondary" onPress={onBack} />
-              <View style={styles.sideTitleBlock}>
-                <Text style={styles.sideTitle}>Drum Set</Text>
-                <Text style={styles.sideSubtitle}>{editMode ? 'Drag pieces' : 'Tap to play'}</Text>
-              </View>
-            </View>
-            <View style={styles.sideActions}>
-              <AppButton
-                label={editMode ? 'Done' : 'Edit'}
-                variant={editMode ? 'primary' : 'secondary'}
-                onPress={() => setEditMode((value) => !value)}
-              />
-              <AppButton label="Reset" variant="danger" onPress={resetLayout} />
-            </View>
-            {renderHiHatControl()}
-            {renderPerformancePanel()}
-            {editMode ? (
-              <View style={styles.hint}>
-                <Text style={styles.hintText}>Drag pieces; taps will not play.</Text>
-              </View>
-            ) : null}
+          <View style={styles.floatingHeader}>
+            <AppButton label="Back" variant="secondary" onPress={onBack} />
+            <AppButton label="Controls" variant="secondary" onPress={() => setControlsOpen(true)} />
           </View>
+          {renderStage()}
         </View>
+        <AppModalSheet
+          visible={controlsOpen}
+          title="Drum Controls"
+          presentation="playControls"
+          onClose={() => setControlsOpen(false)}
+        >
+          {renderControlsContent()}
+        </AppModalSheet>
         <AdBannerPlaceholder compact />
       </ScreenContainer>
     );
@@ -409,15 +537,8 @@ export function DrumSetScreen({
         onBack={onBack}
       />
       <View style={styles.toolbar}>
-        <AppButton
-          label={editMode ? 'Done Editing' : 'Edit Layout'}
-          variant={editMode ? 'primary' : 'secondary'}
-          onPress={() => setEditMode((value) => !value)}
-        />
-        <AppButton label="Reset Layout" variant="danger" onPress={resetLayout} />
-        {renderHiHatControl()}
+        <AppButton label="Controls" variant="secondary" onPress={() => setControlsOpen(true)} />
       </View>
-      {renderPerformancePanel()}
       {editMode ? (
         <View style={styles.hint}>
           <Text style={styles.hintText}>
@@ -426,6 +547,14 @@ export function DrumSetScreen({
         </View>
       ) : null}
       {renderStage()}
+      <AppModalSheet
+        visible={controlsOpen}
+        title="Drum Controls"
+        presentation="playControls"
+        onClose={() => setControlsOpen(false)}
+      >
+        {renderControlsContent()}
+      </AppModalSheet>
       <AdBannerPlaceholder />
     </ScreenContainer>
   );
@@ -434,9 +563,61 @@ export function DrumSetScreen({
 const styles = StyleSheet.create({
   landscapeShell: {
     flex: 1,
-    flexDirection: 'row',
-    gap: spacing.sm,
     padding: spacing.sm,
+  },
+  floatingHeader: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
+    zIndex: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    pointerEvents: 'box-none',
+  },
+  controlGroup: {
+    gap: spacing.sm,
+  },
+  controlGroupTitle: {
+    color: colors.mutedText,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  controlHelp: {
+    color: colors.mutedText,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  profileChip: {
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  activeProfileChip: {
+    borderColor: colors.cyan,
+    backgroundColor: `${colors.cyan}22`,
+  },
+  profileChipText: {
+    color: colors.text,
+    fontWeight: '800',
+  },
+  activeProfileChipText: {
+    color: colors.cyan,
+  },
+  sizeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   sideRail: {
     width: 270,

@@ -20,11 +20,11 @@ test('drum piece clamping keeps saved positions inside stage bounds', () => {
   const kick = defaultDrumPieces.find((piece) => piece.id === 'kick');
 
   assert.deepEqual(clampDrumPiecePosition({ x: -1, y: -1 }, kick, 1000, 700), {
-    x: 0.11,
-    y: 0.11,
+    x: 0.13,
+    y: 0.13,
   });
   assert.deepEqual(clampDrumPiecePosition({ x: 2, y: 2 }, kick, 1000, 700), {
-    x: 0.89,
-    y: 0.89,
+    x: 0.87,
+    y: 0.87,
   });
 });
