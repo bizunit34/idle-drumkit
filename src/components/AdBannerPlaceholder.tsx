@@ -1,9 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme';
 
-export function AdBannerPlaceholder() {
+type Props = {
+  compact?: boolean;
+};
+
+export function AdBannerPlaceholder({ compact = false }: Props) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, compact && styles.compact]}>
       <Text style={styles.text}>Ad banner placeholder</Text>
     </View>
   );
@@ -17,6 +21,9 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     borderTopWidth: 1,
     backgroundColor: colors.surfaceMuted,
+  },
+  compact: {
+    height: 34,
   },
   text: {
     color: colors.mutedText,

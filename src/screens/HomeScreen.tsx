@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
   type ImageSourcePropType,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { AppButton } from '../components/AppButton';
+import { ModeSelectOverlay } from '../components/ModeSelectOverlay';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { colors, radii, spacing } from '../theme';
 import type { ScreenName } from '../types';
@@ -29,6 +33,7 @@ type HomeSlide = {
   title: string;
   body: string;
   accent: string;
+  target?: ScreenName;
   image?: ImageSourcePropType;
   imageKey?: string;
 };
@@ -38,6 +43,7 @@ const slides: HomeSlide[] = [
     title: 'Play a drum kit',
     body: 'Tap kick, snare, cymbals, and toms with a starter acoustic layout.',
     accent: colors.cyan,
+    target: 'drumSet',
     image: drumSetSource,
     imageKey: 'home-carousel-drum-set',
   },
@@ -45,6 +51,7 @@ const slides: HomeSlide[] = [
     title: 'Use MIDI pads',
     body: 'Switch between 3x4 and 4x4 controller layouts with bright pad accents.',
     accent: colors.yellow,
+    target: 'midiController',
     image: midiPadsSource,
     imageKey: 'home-carousel-midi-pads',
   },
@@ -57,20 +64,54 @@ const slides: HomeSlide[] = [
   },
 ];
 
+const modeOptions = [
+  {
+    title: 'Drum Set',
+    body: 'Classic starter kit with movable pieces and articulation controls.',
+    screen: 'drumSet' as const,
+    image: drumSetSource,
+    imageKey: 'home-carousel-drum-set',
+  },
+  {
+    title: 'MIDI Controller',
+    body: 'Neon pad controller with editable labels, colors, and custom sounds.',
+    screen: 'midiController' as const,
+    image: midiPadsSource,
+    imageKey: 'home-carousel-midi-pads',
+  },
+];
+
 export function HomeScreen({ navigate }: Props) {
+  const carouselRef = useRef<ScrollView>(null);
   const [showModes, setShowModes] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [carouselWidth, setCarouselWidth] = useState(1);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const { width } = useWindowDimensions();
   const compact = width < 720;
-  const slide = slides[slideIndex] ?? {
-    title: 'Drumkit',
-    body: 'Tap into a compact kit or MIDI-style controller.',
-    accent: colors.cyan,
-  };
-  const shouldShowSlideImage =
-    slide.image && slide.imageKey ? !failedImages[slide.imageKey] : false;
   const shouldShowMascot = !failedImages.mascot;
+
+  const setImageFailed = (key: string) =>
+    setFailedImages((current) => ({ ...current, [key]: true }));
+
+  const scrollToSlide = (index: number) => {
+    const wrappedIndex = (index + slides.length) % slides.length;
+    setSlideIndex(wrappedIndex);
+    carouselRef.current?.scrollTo({ x: wrappedIndex * carouselWidth, animated: true });
+  };
+
+  const onCarouselMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / carouselWidth);
+    setSlideIndex(Math.max(0, Math.min(slides.length - 1, nextIndex)));
+  };
+
+  const onSlidePress = (slide: HomeSlide) => {
+    if (slide.target) {
+      navigate(slide.target);
+      return;
+    }
+    setShowModes(true);
+  };
 
   return (
     <ScreenContainer>
@@ -82,7 +123,7 @@ export function HomeScreen({ navigate }: Props) {
                 source={mascotSource}
                 resizeMode="contain"
                 accessibilityIgnoresInvertColors
-                onError={() => setFailedImages((current) => ({ ...current, mascot: true }))}
+                onError={() => setImageFailed('mascot')}
                 style={styles.mascotImage}
               />
             ) : (
@@ -95,69 +136,92 @@ export function HomeScreen({ navigate }: Props) {
           <Text style={styles.brand}>Drumkit</Text>
           <Text style={styles.subtitle}>Tap-ready drums for playing along anywhere.</Text>
           <View style={styles.actions}>
-            <AppButton
-              label={showModes ? 'Modes Open' : 'Start'}
-              variant="primary"
-              onPress={() => setShowModes((value) => !value)}
-            />
+            <AppButton label="Start" variant="primary" onPress={() => setShowModes(true)} />
             <AppButton label="Settings" onPress={() => navigate('settings')} />
           </View>
-          {showModes && (
-            <View style={styles.modeList}>
-              <Pressable
-                onPress={() => navigate('drumSet')}
-                style={({ pressed }) => [styles.modeCard, pressed && styles.cardPressed]}
-              >
-                <Text style={styles.modeTitle}>Drum Set</Text>
-                <Text style={styles.modeBody}>Classic kit layout with draggable pieces.</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => navigate('midiController')}
-                style={({ pressed }) => [styles.modeCard, pressed && styles.cardPressed]}
-              >
-                <Text style={styles.modeTitle}>MIDI Controller</Text>
-                <Text style={styles.modeBody}>Neon pad bank with editable labels and sounds.</Text>
-              </Pressable>
-            </View>
-          )}
         </View>
-        <View style={styles.carousel}>
-          <View style={[styles.slideArt, { borderColor: slide.accent }]}>
-            {shouldShowSlideImage ? (
-              <Image
-                source={slide.image}
-                resizeMode="cover"
-                accessibilityIgnoresInvertColors
-                onError={() => {
-                  const imageKey = slide.imageKey;
-                  if (imageKey) {
-                    setFailedImages((current) => ({ ...current, [imageKey]: true }));
-                  }
-                }}
-                style={styles.slideImage}
-              />
-            ) : (
-              <>
-                <View style={[styles.slidePad, { backgroundColor: `${slide.accent}33` }]} />
-                <View style={[styles.slideDot, { backgroundColor: slide.accent }]} />
-              </>
-            )}
-          </View>
-          <Text style={[styles.carouselLabel, { color: slide.accent }]}>Alpha loop</Text>
-          <Text style={styles.slideTitle}>{slide.title}</Text>
-          <Text style={styles.slideBody}>{slide.body}</Text>
-          <View style={styles.dots}>
-            {slides.map((item, index) => (
-              <Pressable
-                key={item.title}
-                accessibilityRole="button"
-                onPress={() => setSlideIndex(index)}
-                style={[styles.dot, index === slideIndex && styles.activeDot]}
-              />
-            ))}
+        <View
+          style={styles.carousel}
+          onLayout={(event) => setCarouselWidth(event.nativeEvent.layout.width)}
+        >
+          <ScrollView
+            ref={carouselRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onCarouselMomentumEnd}
+            scrollEventThrottle={16}
+          >
+            {slides.map((slide) => {
+              const shouldShowSlideImage =
+                slide.image && slide.imageKey ? !failedImages[slide.imageKey] : false;
+              return (
+                <Pressable
+                  key={slide.title}
+                  onPress={() => onSlidePress(slide)}
+                  style={({ pressed }) => [
+                    styles.slide,
+                    { width: carouselWidth },
+                    pressed && styles.cardPressed,
+                  ]}
+                >
+                  <View style={[styles.slideArt, { borderColor: slide.accent }]}>
+                    {shouldShowSlideImage ? (
+                      <Image
+                        source={slide.image}
+                        resizeMode="contain"
+                        accessibilityIgnoresInvertColors
+                        onError={() => {
+                          if (slide.imageKey) setImageFailed(slide.imageKey);
+                        }}
+                        style={styles.slideImage}
+                      />
+                    ) : (
+                      <>
+                        <View style={[styles.slidePad, { backgroundColor: `${slide.accent}33` }]} />
+                        <View style={[styles.slideDot, { backgroundColor: slide.accent }]} />
+                      </>
+                    )}
+                  </View>
+                  <Text style={[styles.carouselLabel, { color: slide.accent }]}>Alpha loop</Text>
+                  <Text style={styles.slideTitle}>{slide.title}</Text>
+                  <Text style={styles.slideBody}>{slide.body}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.carouselControls}>
+            <AppButton
+              label="Prev"
+              variant="secondary"
+              onPress={() => scrollToSlide(slideIndex - 1)}
+            />
+            <View style={styles.dots}>
+              {slides.map((item, index) => (
+                <Pressable
+                  key={item.title}
+                  accessibilityRole="button"
+                  onPress={() => scrollToSlide(index)}
+                  style={[styles.dot, index === slideIndex && styles.activeDot]}
+                />
+              ))}
+            </View>
+            <AppButton
+              label="Next"
+              variant="secondary"
+              onPress={() => scrollToSlide(slideIndex + 1)}
+            />
           </View>
         </View>
       </View>
+      <ModeSelectOverlay
+        visible={showModes}
+        failedImages={failedImages}
+        options={modeOptions}
+        onClose={() => setShowModes(false)}
+        onNavigate={navigate}
+        onImageError={setImageFailed}
+      />
     </ScreenContainer>
   );
 }
@@ -223,51 +287,31 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.xl,
   },
-  modeList: {
-    gap: spacing.md,
-    marginTop: spacing.lg,
-    maxWidth: 360,
-  },
-  modeCard: {
-    minHeight: 76,
-    justifyContent: 'center',
-    gap: spacing.xs,
-    padding: spacing.lg,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceRaised,
-  },
   cardPressed: {
     opacity: 0.78,
     transform: [{ scale: 0.98 }],
   },
-  modeTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  modeBody: {
-    color: colors.mutedText,
-    fontSize: 13,
-  },
   carousel: {
     flex: 1,
-    minHeight: 280,
-    justifyContent: 'center',
-    padding: spacing.xl,
+    minHeight: 300,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  slide: {
+    justifyContent: 'center',
+    padding: spacing.xl,
   },
   slideArt: {
-    height: 96,
+    height: 148,
     borderRadius: radii.lg,
     borderWidth: 1,
     backgroundColor: colors.surfaceMuted,
     justifyContent: 'center',
-    padding: spacing.lg,
+    alignItems: 'center',
+    padding: spacing.md,
     marginBottom: spacing.lg,
     overflow: 'hidden',
   },
@@ -285,11 +329,6 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   slideImage: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
     width: '100%',
     height: '100%',
   },
@@ -310,10 +349,20 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: spacing.sm,
   },
+  carouselControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
   dots: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
     gap: spacing.sm,
-    marginTop: spacing.xl,
   },
   dot: {
     width: 12,

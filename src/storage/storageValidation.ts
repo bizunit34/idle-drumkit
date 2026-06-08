@@ -17,7 +17,7 @@ import type {
 
 export const defaultSettings: AppSettings = {
   masterVolume: 0.85,
-  showHitBoxes: true,
+  showHitBoxes: false,
   lowLatencyMode: true,
   selectedDrumArticulations: getDefaultSelectedDrumArticulations(),
 };

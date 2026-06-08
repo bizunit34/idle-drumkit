@@ -98,6 +98,7 @@ npm run validate
 ## MVP Status
 
 - Home screen with Start, Settings, mode selection, and placeholder promo carousel.
+- Home screen uses a swipeable carousel with contain-rendered artwork and a modal mode-selection overlay.
 - Drum Set screen with playable kick, snare, hi-hat, crash, ride, toms, editable dragged layout, local persistence, and reset.
 - Drum Set includes a persisted articulation system for kick Normal/Sub, snare Center/Rimshot/Cross-stick, hi-hat Closed/Open, crash Hit/Choke, ride Bow/Bell, and tom Center/Rim variants.
 - Hi-hat Closed/Open swaps the hi-hat artwork where assets are available; triggering Closed chokes any ringing bundled Open hi-hat pool where Expo audio allows.
@@ -111,6 +112,7 @@ npm run validate
 - First-round alpha polish includes persistent custom sound copies, safer storage parsing, schema versioning, reset confirmations, toast feedback, future image placeholder notes, and manual QA documentation.
 - Internal alpha prep includes placeholder iOS/Android identifiers, EAS profiles, issue templates, internal build docs, asset pipeline docs, and a simple app error boundary.
 - QA hardening includes pure logic tests for articulation mappings, selected articulation validation, old hi-hat setting migration, corrupted settings fallback, and drum position validation.
+- Physical-device layout QA fixes include Settings scrolling, Android top safe-area padding, and a landscape Drum Set layout that prioritizes the kit surface.
 
 ## Known Limitations
 

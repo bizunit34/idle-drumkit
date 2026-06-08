@@ -11,6 +11,9 @@ Copy this into a GitHub QA finding or test report when running internal alpha ch
 - OS version:
 - Install method:
 - Orientation tested: Portrait / Landscape / Both
+- Screens tested: Home / Drum Set / MIDI Controller / Settings
+- Carousel tested: Swipe / Press / Prev-Next / Not tested
+- Start overlay tested: Yes / No
 - External music tested: Yes / No
 
 ## Result

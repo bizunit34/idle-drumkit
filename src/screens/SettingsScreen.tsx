@@ -1,4 +1,4 @@
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { AppButton } from '../components/AppButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
@@ -28,7 +28,11 @@ export function SettingsScreen({
   return (
     <ScreenContainer>
       <ScreenHeader title="Settings" subtitle="Global play and storage options" onBack={onBack} />
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.row}>
           <View style={styles.rowText}>
             <Text style={styles.label}>Master Volume</Text>
@@ -88,15 +92,19 @@ export function SettingsScreen({
           </Text>
           <AppButton label="Reset All Local App Data" variant="danger" onPress={onResetAllData} />
         </View>
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   content: {
     gap: spacing.md,
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   row: {
     flexDirection: 'row',

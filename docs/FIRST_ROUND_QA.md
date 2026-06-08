@@ -29,17 +29,28 @@ Use this checklist before calling a first alpha pass complete. Run `npm run vali
 ## Home Navigation
 
 - Tap Start.
-- Expected: mode cards expand below the Start/Settings controls.
+- Expected: a dimmed mode-selection overlay opens without shifting the Home layout.
+- Tap outside the overlay or Close.
+- Expected: overlay dismisses cleanly.
+- Tap Drum Set and MIDI Controller cards in the overlay.
+- Expected: each screen opens and Back returns Home.
 - Tap Drum Set and MIDI Controller cards.
 - Expected: each screen opens and Back returns Home.
-- Tap the carousel dots.
-- Expected: each placeholder card changes title, description, accent, and placeholder art.
+- Swipe the carousel horizontally.
+- Expected: cards snap cleanly, artwork is fully visible, and titles/descriptions remain native text.
+- Tap the carousel dots, Prev, and Next.
+- Expected: navigation changes cards; Prev and Next wrap at either end.
+- Tap the drum kit and MIDI carousel cards.
+- Expected: the relevant mode opens. Tap the custom sounds carousel card.
+- Expected: the mode-selection overlay opens.
 
 ## Drum Set Play Mode
 
 - Open Drum Set with Edit Layout off.
 - Tap kick, snare, hi-hat, crash, ride, high tom, mid tom, and floor tom.
 - Expected: each visible piece plays its assigned bundled sound and shows a press state.
+- In landscape, confirm the kit surface dominates the screen and controls are in the compact side rail.
+- Expected: Back, Edit, Reset, hi-hat, and articulation controls remain reachable without covering the kit surface.
 - Toggle hi-hat between Closed and Open, then tap the hi-hat.
 - Expected: Closed plays the staccato closed hi-hat sample and Open plays the ringing open hi-hat sample.
 - Expected: the visible hi-hat swaps between closed/open artwork when both articulation images are available, and falls back gracefully if either image fails.
@@ -145,6 +156,8 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Leave Settings and return.
 - Expected: settings remain changed.
 - Expected: Show Hit Boxes visibly affects outlines on Drum Set and MIDI Controller screens.
+- In portrait and landscape, scroll Settings to Local Data.
+- Expected: Local Data and Reset All Local App Data are reachable and not hidden behind the navigation/gesture area.
 
 ## External Music Mix
 
@@ -162,6 +175,13 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 
 - Open Drum Set and MIDI Controller.
 - Expected: the placeholder banner reserves space at the bottom and does not overlap playable controls.
+
+## Safe Area And Floating Controls
+
+- Check Home, Drum Set, MIDI Controller, and Settings near the status bar and gesture/navigation bar.
+- Expected: content is not tucked under the status bar, camera cutout, or gesture bar.
+- Confirm no floating settings gear appears over Settings or play-screen content.
+- Expected: Settings is reached through normal buttons/navigation and does not overlap content.
 
 ## Known Limitations
 
