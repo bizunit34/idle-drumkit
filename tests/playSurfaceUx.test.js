@@ -3,7 +3,11 @@ const test = require('node:test');
 
 const {
   buildDefaultDrumLayoutProfiles,
+  getOrientationKey,
   clampPieceScale,
+  clampHitBoxScale,
+  resetOrientationLayout,
+  resetPieceLayout,
   validateDrumLayoutProfileId,
   validateDrumLayoutProfiles,
 } = require('../.qa-test-build/src/data/drumLayoutProfiles');
@@ -18,34 +22,101 @@ test('volume slider helpers clamp values and map positions', () => {
 });
 
 test('drum profile defaults include two custom layout slots', () => {
-  assert.deepEqual(Object.keys(buildDefaultDrumLayoutProfiles()), [
-    'default',
-    'custom1',
-    'custom2',
-  ]);
+  const profiles = buildDefaultDrumLayoutProfiles();
+
+  assert.deepEqual(Object.keys(profiles), ['default', 'custom1', 'custom2']);
+  assert.deepEqual(Object.keys(profiles.custom1.layouts), ['portrait', 'landscape']);
+  assert.deepEqual(profiles.custom1.layouts.portrait.pieces, {});
+  assert.deepEqual(profiles.custom1.layouts.landscape.pieces, {});
 });
 
-test('drum profile validation migrates old positions into Custom 1', () => {
+test('drum profile validation migrates old positions into both orientations', () => {
   const profiles = validateDrumLayoutProfiles({}, { kick: { x: 0.2, y: 0.8 } });
 
-  assert.deepEqual(profiles.custom1.positions.kick, { x: 0.2, y: 0.8 });
+  assert.equal(profiles.custom1.layouts.portrait.pieces.kick.x, 0.2);
+  assert.equal(profiles.custom1.layouts.portrait.pieces.kick.y, 0.8);
+  assert.equal(profiles.custom1.layouts.landscape.pieces.kick.x, 0.2);
+  assert.equal(profiles.custom1.layouts.landscape.pieces.kick.y, 0.8);
 });
 
-test('drum profile validation clamps piece scales and rejects unknown profiles', () => {
+test('drum profile validation keeps portrait and landscape layouts separate', () => {
   const profiles = validateDrumLayoutProfiles(
     {
       custom2: {
-        positions: { kick: { x: -2, y: 4 }, nope: { x: 0.5, y: 0.5 } },
-        scales: { kick: 5, snare: 0.1, nope: 1.2 },
+        layouts: {
+          portrait: {
+            pieces: {
+              kick: {
+                x: -2,
+                y: 4,
+                visualScale: 5,
+                hitBoxScaleX: 0.1,
+                hitBoxScaleY: 4,
+              },
+              nope: { x: 0.5, y: 0.5 },
+            },
+          },
+          landscape: {
+            pieces: {
+              snare: {
+                x: 0.3,
+                y: 0.4,
+                visualScale: 1.2,
+                hitBoxScaleX: 1.3,
+                hitBoxScaleY: 1.4,
+              },
+            },
+          },
+        },
       },
     },
     {},
   );
 
   assert.equal(validateDrumLayoutProfileId('missing'), 'default');
-  assert.equal(clampPieceScale(5), 1.45);
+  assert.equal(clampPieceScale(5), 1.65);
   assert.equal(clampPieceScale(0.1), 0.72);
-  assert.deepEqual(profiles.custom2.positions.kick, { x: 0, y: 1 });
-  assert.equal(profiles.custom2.scales.kick, 1.45);
-  assert.equal(profiles.custom2.scales.snare, 0.72);
+  assert.equal(clampHitBoxScale(5), 1.9);
+  assert.equal(clampHitBoxScale(0.1), 0.6);
+  assert.equal(profiles.custom2.layouts.portrait.pieces.kick.x, 0);
+  assert.equal(profiles.custom2.layouts.portrait.pieces.kick.y, 1);
+  assert.equal(profiles.custom2.layouts.portrait.pieces.kick.visualScale, 1.65);
+  assert.equal(profiles.custom2.layouts.portrait.pieces.kick.hitBoxScaleX, 0.6);
+  assert.equal(profiles.custom2.layouts.portrait.pieces.kick.hitBoxScaleY, 1.9);
+  assert.equal(profiles.custom2.layouts.landscape.pieces.snare.x, 0.3);
+  assert.equal(profiles.custom2.layouts.landscape.pieces.snare.hitBoxScaleY, 1.4);
+  assert.equal(profiles.custom2.layouts.portrait.pieces.snare, undefined);
+});
+
+test('orientation helpers and reset helpers target the requested layout only', () => {
+  assert.equal(getOrientationKey(800, 400), 'landscape');
+  assert.equal(getOrientationKey(400, 800), 'portrait');
+
+  const profile = validateDrumLayoutProfiles(
+    {
+      custom1: {
+        layouts: {
+          portrait: {
+            pieces: {
+              kick: { x: 0.2, y: 0.7, visualScale: 1.2, hitBoxScaleX: 1.1, hitBoxScaleY: 1.2 },
+            },
+          },
+          landscape: {
+            pieces: {
+              kick: { x: 0.4, y: 0.8, visualScale: 1.3, hitBoxScaleX: 1.4, hitBoxScaleY: 1.5 },
+            },
+          },
+        },
+      },
+    },
+    {},
+  ).custom1;
+
+  const resetPiece = resetPieceLayout(profile, 'portrait', 'kick');
+  assert.equal(resetPiece.layouts.portrait.pieces.kick, undefined);
+  assert.equal(resetPiece.layouts.landscape.pieces.kick.x, 0.4);
+
+  const resetOrientation = resetOrientationLayout(profile, 'landscape');
+  assert.equal(resetOrientation.layouts.portrait.pieces.kick.x, 0.2);
+  assert.deepEqual(resetOrientation.layouts.landscape.pieces, {});
 });

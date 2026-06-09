@@ -22,6 +22,16 @@ import {
 } from '../data/drumArticulations';
 import { drumAssets } from '../data/drumAssets';
 import { defaultDrumPieces } from '../data/drumKit';
+import {
+  createDefaultPieceLayout,
+  getOrientationKey,
+  getResetProfile,
+  resetOrientationLayout,
+  resetPieceLayout,
+  resolvePieceLayout,
+  clampHitBoxScale,
+  clampPieceScale,
+} from '../data/drumLayoutProfiles';
 import { colors, radii, spacing } from '../theme';
 import { getResponsiveDrumScale } from '../utils/drumSizing';
 import { clampDrumPiecePosition } from '../utils/layout';
@@ -29,11 +39,12 @@ import type {
   AppSettings,
   DrumArticulation,
   DrumAssetKey,
+  DrumLayoutOrientation,
   DrumLayoutProfile,
   DrumLayoutProfileId,
   DrumPiece,
   DrumPieceId,
-  Point,
+  DrumPieceLayout,
   SelectedDrumArticulations,
   SoundKey,
 } from '../types';
@@ -55,6 +66,10 @@ type BoardSize = {
   width: number;
   height: number;
 };
+
+type EditTarget = 'item' | 'hitBox' | 'both';
+
+type ResizeCorner = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 
 type ResolvedImage = {
   key: string;
@@ -115,43 +130,51 @@ export function DrumSetScreen({
   const activeProfile = drumLayoutProfiles[activeProfileId];
   const [draftLayout, setDraftLayout] = useState<{
     profileId: DrumLayoutProfileId;
-    positions: Partial<Record<DrumPieceId, Point>>;
+    orientation: DrumLayoutOrientation;
+    pieces: Partial<Record<DrumPieceId, DrumPieceLayout>>;
   } | null>(null);
   const [boardSize, setBoardSize] = useState<BoardSize>({ width: 1, height: 1 });
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [selectedPieceId, setSelectedPieceId] = useState<DrumPieceId>('hihat');
+  const [selectedEditPieceId, setSelectedEditPieceId] = useState<DrumPieceId | null>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget>('both');
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const landscape = windowWidth > windowHeight;
+  const orientation = getOrientationKey(windowWidth, windowHeight);
 
-  const positions =
-    draftLayout?.profileId === activeProfileId ? draftLayout.positions : activeProfile.positions;
+  const activeOrientationPieces =
+    draftLayout?.profileId === activeProfileId && draftLayout.orientation === orientation
+      ? draftLayout.pieces
+      : activeProfile.layouts[orientation].pieces;
 
   const pieces = useMemo(
     () =>
       defaultDrumPieces
         .map((piece): DrumPiece => {
-          const scale = activeProfile.scales[piece.id] ?? 1;
+          const layout = activeOrientationPieces[piece.id] ?? createDefaultPieceLayout(piece.id);
           const responsiveScale = getResponsiveDrumScale(piece.id, landscape);
           const scaledPiece: DrumPiece = {
             ...piece,
-            position: positions[piece.id] ?? piece.position,
+            position: { x: layout.x, y: layout.y },
             size: {
-              width: piece.size.width * scale * responsiveScale.hitBox.width,
-              height: piece.size.height * scale * responsiveScale.hitBox.height,
+              width: piece.size.width * layout.hitBoxScaleX * responsiveScale.hitBox.width,
+              height: piece.size.height * layout.hitBoxScaleY * responsiveScale.hitBox.height,
             },
           };
 
           if (piece.defaultVisualSize) {
             scaledPiece.defaultVisualSize = {
-              width: piece.defaultVisualSize.width * scale * responsiveScale.visual.width,
-              height: piece.defaultVisualSize.height * scale * responsiveScale.visual.height,
+              width:
+                piece.defaultVisualSize.width * layout.visualScale * responsiveScale.visual.width,
+              height:
+                piece.defaultVisualSize.height * layout.visualScale * responsiveScale.visual.height,
             };
           }
 
           return scaledPiece;
         })
         .sort((left, right) => (left.zIndex ?? 0) - (right.zIndex ?? 0)),
-    [activeProfile.scales, landscape, positions],
+    [activeOrientationPieces, landscape],
   );
 
   const persistProfilePatch = (patch: Partial<DrumLayoutProfile>) => {
@@ -164,34 +187,79 @@ export function DrumSetScreen({
     });
   };
 
-  const persistPositions = (next: Partial<Record<DrumPieceId, Point>>) => {
-    setDraftLayout({ profileId: activeProfileId, positions: next });
-    persistProfilePatch({ positions: next });
+  const persistOrientationPieces = (next: Partial<Record<DrumPieceId, DrumPieceLayout>>) => {
+    setDraftLayout({ profileId: activeProfileId, orientation, pieces: next });
+    persistProfilePatch({
+      layouts: {
+        ...activeProfile.layouts,
+        [orientation]: { pieces: next },
+      },
+    });
+  };
+
+  const persistPieceLayout = (pieceId: DrumPieceId, next: DrumPieceLayout) => {
+    persistOrientationPieces({ ...activeOrientationPieces, [pieceId]: next });
   };
 
   const resetLayout = () => {
-    Alert.alert('Reset layout?', `This resets ${activeProfile.label}.`, [
+    Alert.alert(
+      'Reset current orientation?',
+      `This resets ${activeProfile.label} ${orientation}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            const nextProfile = resetOrientationLayout(activeProfile, orientation);
+            onSaveLayoutProfiles({ ...drumLayoutProfiles, [activeProfileId]: nextProfile });
+            setDraftLayout({ profileId: activeProfileId, orientation, pieces: {} });
+            onNotify('Current orientation reset.');
+          },
+        },
+      ],
+    );
+  };
+
+  const resetSelectedPiece = () => {
+    if (!selectedEditPieceId) return;
+    Alert.alert(
+      'Reset selected drum?',
+      'This resets the selected drum in the current orientation.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            const nextProfile = resetPieceLayout(activeProfile, orientation, selectedEditPieceId);
+            onSaveLayoutProfiles({ ...drumLayoutProfiles, [activeProfileId]: nextProfile });
+            setDraftLayout({
+              profileId: activeProfileId,
+              orientation,
+              pieces: nextProfile.layouts[orientation].pieces,
+            });
+            onNotify('Selected drum reset.');
+          },
+        },
+      ],
+    );
+  };
+
+  const resetEntireProfile = () => {
+    Alert.alert('Reset entire profile?', `This resets all ${activeProfile.label} layouts.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reset',
         style: 'destructive',
         onPress: () => {
-          persistPositions({});
-          persistProfilePatch({ positions: {}, scales: {} });
-          onNotify('Drum layout reset.');
+          const nextProfile = getResetProfile(activeProfileId);
+          onSaveLayoutProfiles({ ...drumLayoutProfiles, [activeProfileId]: nextProfile });
+          setDraftLayout({ profileId: activeProfileId, orientation, pieces: {} });
+          onNotify('Profile reset.');
         },
       },
     ]);
-  };
-
-  const setPieceScale = (pieceId: DrumPieceId, nextScale: number) => {
-    const scale = Math.min(1.45, Math.max(0.72, nextScale));
-    persistProfilePatch({
-      scales: {
-        ...activeProfile.scales,
-        [pieceId]: scale,
-      },
-    });
   };
 
   const onBoardLayout = (event: LayoutChangeEvent) => {
@@ -226,7 +294,63 @@ export function DrumSetScreen({
     onPlaySound(articulation.sound);
   };
 
-  const selectedPiece = pieces.find((piece) => piece.id === selectedPieceId) ?? pieces[0];
+  const setDraftPieceLayout = (pieceId: DrumPieceId, next: DrumPieceLayout) => {
+    setDraftLayout({
+      profileId: activeProfileId,
+      orientation,
+      pieces: { ...activeOrientationPieces, [pieceId]: next },
+    });
+  };
+
+  const clampLayoutPosition = (piece: DrumPiece, layout: DrumPieceLayout): DrumPieceLayout => {
+    const nextPosition = clampDrumPiecePosition(
+      { x: layout.x, y: layout.y },
+      piece,
+      boardSize.width,
+      boardSize.height,
+    );
+    return { ...layout, x: nextPosition.x, y: nextPosition.y };
+  };
+
+  const resizeLayoutFromCorner = (
+    piece: DrumPiece,
+    layout: DrumPieceLayout,
+    corner: ResizeCorner,
+    dx: number,
+    dy: number,
+  ): DrumPieceLayout => {
+    const horizontal = corner === 'topRight' || corner === 'bottomRight' ? dx : -dx;
+    const vertical = corner === 'bottomLeft' || corner === 'bottomRight' ? dy : -dy;
+    const next = { ...layout };
+
+    if (editTarget === 'item' || editTarget === 'both') {
+      const delta = (horizontal / boardSize.width + vertical / boardSize.height) * 1.6;
+      next.visualScale = clampPieceScale(layout.visualScale + delta);
+    }
+
+    if (editTarget === 'hitBox' || editTarget === 'both') {
+      next.hitBoxScaleX = clampHitBoxScale(
+        layout.hitBoxScaleX + (horizontal / boardSize.width) * 3,
+      );
+      next.hitBoxScaleY = clampHitBoxScale(layout.hitBoxScaleY + (vertical / boardSize.height) * 3);
+    }
+
+    const widthRatio = next.hitBoxScaleX / Math.max(0.01, layout.hitBoxScaleX);
+    const heightRatio = next.hitBoxScaleY / Math.max(0.01, layout.hitBoxScaleY);
+    return clampLayoutPosition(
+      {
+        ...piece,
+        size: {
+          width: piece.size.width * widthRatio,
+          height: piece.size.height * heightRatio,
+        },
+      },
+      next,
+    );
+  };
+
+  const activeSelectedPieceId = selectedEditPieceId ?? selectedPieceId;
+  const selectedPiece = pieces.find((piece) => piece.id === activeSelectedPieceId) ?? pieces[0];
   const selectedConfig = selectedPiece ? getArticulationConfig(selectedPiece.id) : undefined;
   const selectedArticulation = selectedPiece
     ? resolveSelectedArticulation(selectedPiece.id, settings.selectedDrumArticulations)
@@ -292,25 +416,33 @@ export function DrumSetScreen({
 
   const renderSizeControl = () => {
     if (!editMode || !selectedPiece) return null;
-    const currentScale = activeProfile.scales[selectedPiece.id] ?? 1;
+    const currentLayout = resolvePieceLayout(activeProfile, orientation, selectedPiece.id);
     return (
       <View style={styles.controlGroup}>
-        <Text style={styles.controlGroupTitle}>Piece Size</Text>
-        <Text style={styles.controlHelp}>
-          {selectedPiece.label}: {Math.round(currentScale * 100)}%
-        </Text>
-        <View style={styles.sizeButtons}>
-          <AppButton
-            label="Smaller"
-            variant="secondary"
-            onPress={() => setPieceScale(selectedPiece.id, currentScale - 0.08)}
-          />
-          <AppButton
-            label="Larger"
-            variant="secondary"
-            onPress={() => setPieceScale(selectedPiece.id, currentScale + 0.08)}
-          />
+        <Text style={styles.controlGroupTitle}>Edit Target</Text>
+        <View style={styles.profileRow}>
+          {(['item', 'hitBox', 'both'] as EditTarget[]).map((target) => (
+            <Pressable
+              key={target}
+              onPress={() => setEditTarget(target)}
+              style={[styles.profileChip, editTarget === target && styles.activeProfileChip]}
+            >
+              <Text
+                style={[
+                  styles.profileChipText,
+                  editTarget === target && styles.activeProfileChipText,
+                ]}
+              >
+                {target === 'hitBox' ? 'Hit Box' : target === 'both' ? 'Both' : 'Item'}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+        <Text style={styles.controlHelp}>
+          {selectedPiece.label}: item {Math.round(currentLayout.visualScale * 100)}%, hit box{' '}
+          {Math.round(currentLayout.hitBoxScaleX * 100)}% x{' '}
+          {Math.round(currentLayout.hitBoxScaleY * 100)}%
+        </Text>
       </View>
     );
   };
@@ -319,13 +451,21 @@ export function DrumSetScreen({
     <>
       <View style={styles.controlGroup}>
         <Text style={styles.controlGroupTitle}>Layout</Text>
+        <Text style={styles.controlHelp}>
+          Editing {orientation === 'landscape' ? 'Landscape' : 'Portrait'} Layout
+        </Text>
         <View style={styles.sizeButtons}>
           <AppButton
             label={editMode ? 'Done Editing' : 'Edit Layout'}
             variant={editMode ? 'primary' : 'secondary'}
-            onPress={() => setEditMode((value) => !value)}
+            onPress={() => {
+              setEditMode((value) => !value);
+              setSelectedEditPieceId((value) => value ?? selectedPieceId);
+            }}
           />
-          <AppButton label="Reset Layout" variant="danger" onPress={resetLayout} />
+          <AppButton label="Reset Selected" variant="secondary" onPress={resetSelectedPiece} />
+          <AppButton label="Reset Orientation" variant="danger" onPress={resetLayout} />
+          <AppButton label="Reset Profile" variant="danger" onPress={resetEntireProfile} />
         </View>
       </View>
       {renderProfileControl()}
@@ -384,7 +524,16 @@ export function DrumSetScreen({
 
   const renderStage = () => (
     <View style={[styles.stage, landscape && styles.landscapeStage]} onLayout={onBoardLayout}>
+      {editMode ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Deselect drum piece"
+          onPress={() => setSelectedEditPieceId(null)}
+          style={styles.stageDeselect}
+        />
+      ) : null}
       {pieces.map((piece) => {
+        const pieceLayout = activeOrientationPieces[piece.id] ?? createDefaultPieceLayout(piece.id);
         const articulation = resolveSelectedArticulation(
           piece.id,
           settings.selectedDrumArticulations,
@@ -398,12 +547,17 @@ export function DrumSetScreen({
         const height = piece.size.height * boardSize.height;
         const left = piece.position.x * boardSize.width - width / 2;
         const top = piece.position.y * boardSize.height - height / 2;
-        const dragOrigin = piece.position;
+        const selectedInEdit = editMode && selectedEditPieceId === piece.id;
+        const dragOrigin = pieceLayout;
         const hitBoxShape = piece.hitBoxShape ?? piece.shape;
         const panResponder = PanResponder.create({
           onStartShouldSetPanResponder: () => editMode,
           onMoveShouldSetPanResponder: () => editMode,
           onPanResponderTerminationRequest: () => false,
+          onPanResponderGrant: () => {
+            setSelectedEditPieceId(piece.id);
+            setSelectedPieceId(piece.id);
+          },
           onPanResponderMove: (_, gesture) => {
             const nextPosition = clampDrumPiecePosition(
               {
@@ -414,10 +568,7 @@ export function DrumSetScreen({
               boardSize.width,
               boardSize.height,
             );
-            setDraftLayout({
-              profileId: activeProfileId,
-              positions: { ...positions, [piece.id]: nextPosition },
-            });
+            setDraftPieceLayout(piece.id, { ...dragOrigin, ...nextPosition });
           },
           onPanResponderRelease: (_, gesture) => {
             const nextPosition = clampDrumPiecePosition(
@@ -429,30 +580,79 @@ export function DrumSetScreen({
               boardSize.width,
               boardSize.height,
             );
-            persistPositions({ ...positions, [piece.id]: nextPosition });
+            persistPieceLayout(piece.id, { ...dragOrigin, ...nextPosition });
             onNotify('Drum layout saved.');
           },
         });
+        const resizeResponders: Record<ResizeCorner, ReturnType<typeof PanResponder.create>> = {
+          topLeft: PanResponder.create({
+            onStartShouldSetPanResponder: () => selectedInEdit,
+            onMoveShouldSetPanResponder: () => selectedInEdit,
+            onPanResponderMove: (_, gesture) =>
+              setDraftPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'topLeft', gesture.dx, gesture.dy),
+              ),
+            onPanResponderRelease: (_, gesture) => {
+              persistPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'topLeft', gesture.dx, gesture.dy),
+              );
+              onNotify('Drum layout saved.');
+            },
+          }),
+          topRight: PanResponder.create({
+            onStartShouldSetPanResponder: () => selectedInEdit,
+            onMoveShouldSetPanResponder: () => selectedInEdit,
+            onPanResponderMove: (_, gesture) =>
+              setDraftPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'topRight', gesture.dx, gesture.dy),
+              ),
+            onPanResponderRelease: (_, gesture) => {
+              persistPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'topRight', gesture.dx, gesture.dy),
+              );
+              onNotify('Drum layout saved.');
+            },
+          }),
+          bottomLeft: PanResponder.create({
+            onStartShouldSetPanResponder: () => selectedInEdit,
+            onMoveShouldSetPanResponder: () => selectedInEdit,
+            onPanResponderMove: (_, gesture) =>
+              setDraftPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'bottomLeft', gesture.dx, gesture.dy),
+              ),
+            onPanResponderRelease: (_, gesture) => {
+              persistPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'bottomLeft', gesture.dx, gesture.dy),
+              );
+              onNotify('Drum layout saved.');
+            },
+          }),
+          bottomRight: PanResponder.create({
+            onStartShouldSetPanResponder: () => selectedInEdit,
+            onMoveShouldSetPanResponder: () => selectedInEdit,
+            onPanResponderMove: (_, gesture) =>
+              setDraftPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'bottomRight', gesture.dx, gesture.dy),
+              ),
+            onPanResponderRelease: (_, gesture) => {
+              persistPieceLayout(
+                piece.id,
+                resizeLayoutFromCorner(piece, pieceLayout, 'bottomRight', gesture.dx, gesture.dy),
+              );
+              onNotify('Drum layout saved.');
+            },
+          }),
+        };
 
-        return (
-          <Pressable
-            key={piece.id}
-            {...panResponder.panHandlers}
-            onPress={() => {
-              if (!editMode) playPiece(piece);
-            }}
-            style={({ pressed }) => [
-              styles.piece,
-              {
-                width,
-                height,
-                left,
-                top,
-                zIndex: piece.zIndex ?? 0,
-              },
-              pressed && !editMode && styles.hit,
-            ]}
-          >
+        const pieceContent = (
+          <>
             {resolvedImage ? (
               <Image
                 source={resolvedImage.source}
@@ -493,15 +693,65 @@ export function DrumSetScreen({
                   styles.hitBoxOverlay,
                   hitBoxShape === 'circle' && styles.circle,
                   hitBoxShape === 'oval' && styles.oval,
+                  selectedInEdit ? styles.selectedHitBoxOverlay : null,
                   {
-                    borderColor: piece.color,
-                    backgroundColor: `${piece.color}0D`,
+                    borderColor: selectedInEdit ? colors.cyan : piece.color,
+                    backgroundColor: selectedInEdit ? `${colors.cyan}16` : `${piece.color}0D`,
                   },
                   editMode && styles.editing,
                 ]}
               />
             ) : null}
+            {selectedInEdit ? (
+              <>
+                <View pointerEvents="none" style={styles.selectedItemOutline} />
+                <Text style={styles.selectedBadge}>
+                  {piece.label} ·{' '}
+                  {editTarget === 'hitBox' ? 'Hit Box' : editTarget === 'both' ? 'Both' : 'Item'}
+                </Text>
+                {(['topLeft', 'topRight', 'bottomLeft', 'bottomRight'] as ResizeCorner[]).map(
+                  (corner) => (
+                    <View
+                      key={corner}
+                      {...resizeResponders[corner].panHandlers}
+                      style={[styles.resizeHandle, styles[corner]]}
+                    >
+                      <View style={styles.resizeHandleDot} />
+                    </View>
+                  ),
+                )}
+              </>
+            ) : null}
             <Text style={styles.pieceLabel}>{piece.label}</Text>
+          </>
+        );
+
+        const pieceStyle = [
+          styles.piece,
+          {
+            width,
+            height,
+            left,
+            top,
+            zIndex: (piece.zIndex ?? 0) + (selectedInEdit ? 50 : 1),
+          },
+        ];
+
+        if (editMode) {
+          return (
+            <View key={piece.id} {...panResponder.panHandlers} style={pieceStyle}>
+              {pieceContent}
+            </View>
+          );
+        }
+
+        return (
+          <Pressable
+            key={piece.id}
+            onPress={() => playPiece(piece)}
+            style={({ pressed }) => [...pieceStyle, pressed && styles.hit]}
+          >
+            {pieceContent}
           </Pressable>
         );
       })}
@@ -516,6 +766,13 @@ export function DrumSetScreen({
             <AppButton label="Back" variant="secondary" onPress={onBack} />
             <AppButton label="Controls" variant="secondary" onPress={() => setControlsOpen(true)} />
           </View>
+          {editMode ? (
+            <View style={styles.landscapeEditHint}>
+              <Text style={styles.hintText}>
+                Tap to select. Drag body to move. Drag handles to resize.
+              </Text>
+            </View>
+          ) : null}
           {renderStage()}
         </View>
         <AppModalSheet
@@ -544,7 +801,7 @@ export function DrumSetScreen({
       {editMode ? (
         <View style={styles.hint}>
           <Text style={styles.hintText}>
-            Edit mode is on. Drag pieces; taps will not play sounds.
+            Tap a drum to select it. Drag to move. Use handles to resize.
           </Text>
         </View>
       ) : null}
@@ -576,6 +833,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     pointerEvents: 'box-none',
+  },
+  landscapeEditHint: {
+    position: 'absolute',
+    top: spacing.md,
+    left: 128,
+    right: 128,
+    zIndex: 18,
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.electricBlue,
+    backgroundColor: `${colors.electricBlue}18`,
   },
   controlGroup: {
     gap: spacing.sm,
@@ -792,6 +1062,14 @@ const styles = StyleSheet.create({
   landscapeStage: {
     margin: 0,
   },
+  stageDeselect: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 0,
+  },
   piece: {
     position: 'absolute',
     alignItems: 'center',
@@ -815,8 +1093,67 @@ const styles = StyleSheet.create({
     left: 0,
     borderWidth: 1,
   },
+  selectedHitBoxOverlay: {
+    borderWidth: 2,
+  },
   pieceImage: {
     position: 'absolute',
+  },
+  selectedItemOutline: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    bottom: -5,
+    left: -5,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: colors.cyan,
+    backgroundColor: `${colors.cyan}08`,
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: -26,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.sm,
+    color: colors.black,
+    backgroundColor: colors.cyan,
+    fontSize: 11,
+    fontWeight: '900',
+    overflow: 'hidden',
+  },
+  resizeHandle: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 80,
+  },
+  resizeHandleDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.black,
+    backgroundColor: colors.cyan,
+  },
+  topLeft: {
+    top: -24,
+    left: -24,
+  },
+  topRight: {
+    top: -24,
+    right: -24,
+  },
+  bottomLeft: {
+    bottom: -24,
+    left: -24,
+  },
+  bottomRight: {
+    right: -24,
+    bottom: -24,
   },
   circle: {
     borderRadius: 999,

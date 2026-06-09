@@ -14,6 +14,7 @@
 - Asset preload foundation complete: critical Home images are warmed during startup with timeout fallback, Home background-preloads Drum Set and MIDI image groups, and mode entry shows a loading overlay only when mode assets are not already ready.
 - Responsive layout cleanup complete: Home now uses a portrait brand row and landscape two-column layout, the mode picker is centered with pressable cards, Drum Set landscape sizing is larger/taller, and MIDI pad editing is separated from normal performance.
 - MIDI performance/edit model complete: long-press no longer edits pads in Performance Mode, Edit Pads Mode opens Pad Edit without playing, and pads now persist playback mode, retrigger mode, choke group, stop/release mode, and pad volume.
+- Drum Set layout editor complete: Edit Layout mode now has explicit selected pieces, drag-to-move, corner resize handles, Item / Hit Box / Both edit targets, and separate portrait/landscape layout storage per profile.
 - Improve touch ergonomics and responsive layout with real device feedback.
 - Add better accessibility labels and screen reader hints.
 - Expand automated tests around MIDI pad reset behavior, custom audio fallback, and additional layout edge cases.

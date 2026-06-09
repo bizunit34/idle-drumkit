@@ -37,11 +37,24 @@ export type Point = {
 
 export type DrumLayoutProfileId = 'default' | 'custom1' | 'custom2';
 
+export type DrumLayoutOrientation = 'portrait' | 'landscape';
+
+export type DrumPieceLayout = {
+  x: number;
+  y: number;
+  visualScale: number;
+  hitBoxScaleX: number;
+  hitBoxScaleY: number;
+};
+
+export type DrumOrientationLayout = {
+  pieces: Partial<Record<DrumPieceId, DrumPieceLayout>>;
+};
+
 export type DrumLayoutProfile = {
   id: DrumLayoutProfileId;
   label: string;
-  positions: Partial<Record<DrumPieceId, Point>>;
-  scales: Partial<Record<DrumPieceId, number>>;
+  layouts: Record<DrumLayoutOrientation, DrumOrientationLayout>;
 };
 
 export type DrumPieceShape = 'circle' | 'oval' | 'rect';

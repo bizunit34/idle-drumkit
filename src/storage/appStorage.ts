@@ -20,7 +20,7 @@ import type {
   Point,
 } from '../types';
 
-const STORAGE_SCHEMA_VERSION = 4;
+const STORAGE_SCHEMA_VERSION = 5;
 const SCHEMA_VERSION_KEY = 'drumkit:schemaVersion';
 const SETTINGS_KEY = 'drumkit:settings';
 const DRUM_POSITIONS_KEY = 'drumkit:drumPositions';
@@ -75,7 +75,7 @@ export async function loadAppState(): Promise<PersistedAppState> {
 
   return {
     settings: validateSettings(parseJson<unknown>(settings, defaultSettings)),
-    drumPositions: profiles[hasMigratedLayout ? 'custom1' : 'default'].positions,
+    drumPositions: profiles[hasMigratedLayout ? 'custom1' : 'default'].layouts.portrait.pieces,
     activeDrumProfileId: hasMigratedLayout
       ? 'custom1'
       : validateActiveDrumProfileId(parseJson<unknown>(activeDrumProfileId, 'default')),

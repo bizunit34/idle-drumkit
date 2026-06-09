@@ -112,7 +112,8 @@ npm run validate
 - Hi-hat Closed/Open swaps the hi-hat artwork where assets are available; triggering Closed chokes any ringing bundled Open hi-hat pool where Expo audio allows.
 - Crash Choke pauses and rewinds the bundled crash player pool as a performance action.
 - Drum Set pieces use per-piece image assets through a central drum asset registry; current shape rendering remains the fallback and hit boxes stay data-driven.
-- Drum Set controls live in a play controls overlay, with Default, Custom 1, and Custom 2 layout profiles plus per-piece size adjustment in edit mode.
+- Drum Set controls live in a play controls overlay, with Default, Custom 1, and Custom 2 orientation-aware layout profiles.
+- Drum Set Edit Layout mode supports tap-to-select, drag-to-move, corner resize handles, and Item / Hit Box / Both resize targets.
 - Drum Set applies larger landscape-only visual and hit-box scaling for priority pieces while preserving stored layout profiles.
 - MIDI Controller screen with 3x4 and 4x4 pad layouts, playable pads, label/color/default sound/custom file editing, local persistence, and reset.
 - MIDI Controller editing lives in a controls overlay so the pad grid stays dominant.
@@ -137,6 +138,7 @@ npm run validate
 - Audio latency is acceptable for an MVP but not yet tuned like a native low-latency sampler.
 - Overlapping playback uses a small player pool and can be improved later.
 - MIDI pad gate/toggle/choke behavior is best-effort with Expo audio pooled players; exact envelopes, loop points, and native sampler choke groups are future work.
+- Drum Set portrait and landscape layouts are stored separately. Legacy single-layout profile data migrates into both orientations on load.
 - Cymbal choke behavior is implemented by pausing and rewinding pooled Expo audio players, not by dedicated native sampler choke groups.
 - Several articulation variants reuse synthetic placeholder sounds until higher-quality sample packs are selected.
 - Imported custom audio uses app-owned document storage, but playback still depends on platform codec support and selected file format.

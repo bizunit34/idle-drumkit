@@ -121,16 +121,35 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 ## Drum Set Edit Mode
 
 - Tap Edit Layout.
-- Drag several pieces near each edge of the stage.
-- Expected: pieces move smoothly, do not play while dragging, and cannot be saved permanently off-screen.
+- Expected: compact instructions appear and drum taps no longer play sounds.
+- Tap a drum piece.
+- Expected: the piece is selected with a clear item outline, selected hit-box outline, label badge, and four resize handles.
+- Tap empty stage.
+- Expected: selected piece is cleared.
+- Tap another drum piece.
+- Expected: selection moves to that piece.
+- Drag the selected drum body.
+- Expected: the drum moves smoothly, item and hit box move together, and the saved position is clamped inside the stage.
+- In Controls, choose Item. Drag a corner resize handle.
+- Expected: only the visual drum image/bounds resize with preserved visual aspect ratio.
+- Choose Hit Box. Drag a corner resize handle.
+- Expected: only the tappable hit box resizes; Show Hit Boxes confirms the new tap area in performance mode.
+- Choose Both. Drag a corner resize handle.
+- Expected: visual item and hit box resize together.
+- Use Reset Selected, Reset Orientation, and Reset Profile.
+- Expected: each action confirms before destructive reset and affects only the requested scope.
 - Tap Done Editing.
 - Expected: normal tap-to-play resumes.
+- Edit a portrait layout, then rotate to landscape.
+- Expected: portrait edits do not affect landscape.
+- Edit a landscape layout, then rotate to portrait.
+- Expected: landscape edits do not affect portrait.
 
 ## Drum Set Reset Layout
 
 - Move at least one drum piece.
-- Tap Reset Layout.
-- Expected: pieces return to default positions and a status message appears.
+- Tap Reset Orientation.
+- Expected: pieces in the current orientation return to defaults and a status message appears.
 
 ## MIDI 3x4 Mode
 

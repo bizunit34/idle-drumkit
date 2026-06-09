@@ -16,6 +16,7 @@ Copy this into a GitHub QA finding or test report when running internal alpha ch
 - Start overlay tested: Yes / No
 - MIDI edit tested: Performance mode / Edit Pads mode / Pad Edit / Not tested
 - MIDI playback behavior tested: One-shot / Gate / Toggle / Choke / Not tested
+- Drum edit tested: Select / Drag / Resize item / Resize hit box / Orientation layouts / Not tested
 - External music tested: Yes / No
 
 ## Result
