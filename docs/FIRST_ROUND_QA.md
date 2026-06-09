@@ -124,18 +124,21 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Expected: compact instructions appear and drum taps no longer play sounds.
 - Tap a drum piece.
 - Expected: the piece is selected with a clear item outline, selected hit-box outline, label badge, and four resize handles.
+- Expected: the Item / Hit Box / Both resize target toolbar is visible on the stage while Edit Layout is on.
 - Tap empty stage.
 - Expected: selected piece is cleared.
 - Tap another drum piece.
 - Expected: selection moves to that piece.
 - Drag the selected drum body.
 - Expected: the drum moves smoothly, item and hit box move together, and the saved position is clamped inside the stage.
-- In Controls, choose Item. Drag a corner resize handle.
+- Choose Item from the stage toolbar or Controls. Drag a corner resize handle.
 - Expected: only the visual drum image/bounds resize with preserved visual aspect ratio.
 - Choose Hit Box. Drag a corner resize handle.
 - Expected: only the tappable hit box resizes; Show Hit Boxes confirms the new tap area in performance mode.
 - Choose Both. Drag a corner resize handle.
 - Expected: visual item and hit box resize together.
+- Drag the selected drum body after resizing.
+- Expected: body drag moves the piece; touching resize handles does not accidentally move the piece.
 - Use Reset Selected, Reset Orientation, and Reset Profile.
 - Expected: each action confirms before destructive reset and affects only the requested scope.
 - Tap Done Editing.
@@ -156,12 +159,16 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Open MIDI Controller and select 3x4.
 - Tap every visible pad.
 - Expected: 12 tactile pads fill the recessed controller surface cleanly, each pad plays, and selected pad state updates with outline/scale/accent treatment.
+- Rotate to landscape.
+- Expected: 3x4 mode uses a two-row, six-column layout where the device width allows it, without vertical scrolling when controls are closed.
 
 ## MIDI 4x4 Mode
 
 - Select 4x4.
 - Tap every visible pad.
 - Expected: 16 tactile pads fill the controller surface cleanly and each pad plays.
+- Rotate to landscape.
+- Expected: 4x4 mode uses a two-row, eight-column layout where the device width allows it; constrained devices may fall back but should avoid awkward vertical stacking.
 
 ## MIDI Pad Editing
 
@@ -178,6 +185,7 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Open Controls.
 - Expected: the General MIDI Controls sheet contains Performance/Edit Pads mode toggle, grid size, display settings, Reset Pads, selected pad summary, and mode-specific instructions.
 - Set Playback Mode to Play once.
+- Expected: playback mode choices use a compact segmented control rather than a large button wall.
 - Expected: pressing the pad starts playback and release does not stop it.
 - Set Playback Mode to Hold to play.
 - Expected: pressing starts playback and releasing stops using the selected Stop/Release setting.
@@ -188,7 +196,7 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Set closed hat and open hat pads to Choke Group Hi-hat.
 - Expected: pressing one chokes the other where pooled Expo audio allows.
 - Change Pad Volume.
-- Expected: that pad plays quieter/louder relative to the master volume and persists after reload.
+- Expected: Pad Volume uses a slider, that pad plays quieter/louder relative to the master volume, and the value persists after reload.
 - Toggle Show Pad Labels, Show Sound Names, and Show Pad Numbers.
 - Expected: visible pad text changes immediately, settings persist after app reload, and pads remain identifiable by accent/selected state when most text is hidden.
 - Turn off all visible pad text.
@@ -246,6 +254,7 @@ Failure notes to capture: device, OS, build number, orientation, selected articu
 - Expected: a readable General MIDI Controls overlay opens with Performance/Edit Pads mode, 3x4/4x4, Reset Pads, pad display toggles, selected pad summary, and an Edit Pad action.
 - Tap Edit Pad from Controls or tap a pad while Edit Pads Mode is on.
 - Expected: a separate readable Pad Edit overlay opens with label, accent color, default sound, playback behavior, custom audio import, and clear custom sound controls.
+- Expected: Default Sound, Retrigger, Choke Group, and Stop / Release use compact select rows; Custom Audio uses a clean empty state rather than a bordered broken-image card.
 
 ## Asset Preload And Loading
 

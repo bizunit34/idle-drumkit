@@ -15,6 +15,7 @@
 - Responsive layout cleanup complete: Home now uses a portrait brand row and landscape two-column layout, the mode picker is centered with pressable cards, Drum Set landscape sizing is larger/taller, and MIDI pad editing is separated from normal performance.
 - MIDI performance/edit model complete: long-press no longer edits pads in Performance Mode, Edit Pads Mode opens Pad Edit without playing, and pads now persist playback mode, retrigger mode, choke group, stop/release mode, and pad volume.
 - Drum Set layout editor complete: Edit Layout mode now has explicit selected pieces, drag-to-move, corner resize handles, Item / Hit Box / Both edit targets, and separate portrait/landscape layout storage per profile.
+- Drum/MIDI editor cleanup complete: resize handles now take priority over body dragging, the Drum Set stage exposes resize target controls while editing, default drum visuals/hit boxes fill more of the existing stage, MIDI landscape uses two-row grids where space allows, and Pad Edit uses compact selector rows plus a volume slider.
 - Improve touch ergonomics and responsive layout with real device feedback.
 - Add better accessibility labels and screen reader hints.
 - Expand automated tests around MIDI pad reset behavior, custom audio fallback, and additional layout edge cases.

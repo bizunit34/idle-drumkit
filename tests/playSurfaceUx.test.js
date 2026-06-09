@@ -6,6 +6,7 @@ const {
   getOrientationKey,
   clampPieceScale,
   clampHitBoxScale,
+  resizePieceLayoutFromCorner,
   resetOrientationLayout,
   resetPieceLayout,
   validateDrumLayoutProfileId,
@@ -119,4 +120,69 @@ test('orientation helpers and reset helpers target the requested layout only', (
   const resetOrientation = resetOrientationLayout(profile, 'landscape');
   assert.equal(resetOrientation.layouts.portrait.pieces.kick.x, 0.2);
   assert.deepEqual(resetOrientation.layouts.landscape.pieces, {});
+});
+
+test('drum resize target helper changes only the requested layout dimensions', () => {
+  const layout = {
+    x: 0.5,
+    y: 0.5,
+    visualScale: 1,
+    hitBoxScaleX: 1,
+    hitBoxScaleY: 1,
+  };
+
+  const itemOnly = resizePieceLayoutFromCorner(layout, {
+    target: 'item',
+    horizontalDelta: 0.2,
+    verticalDelta: 0.1,
+  });
+  assert.ok(itemOnly.visualScale > 1);
+  assert.equal(itemOnly.hitBoxScaleX, 1);
+  assert.equal(itemOnly.hitBoxScaleY, 1);
+
+  const hitBoxOnly = resizePieceLayoutFromCorner(layout, {
+    target: 'hitBox',
+    horizontalDelta: 0.2,
+    verticalDelta: 0.1,
+  });
+  assert.equal(hitBoxOnly.visualScale, 1);
+  assert.ok(hitBoxOnly.hitBoxScaleX > 1);
+  assert.ok(hitBoxOnly.hitBoxScaleY > 1);
+
+  const both = resizePieceLayoutFromCorner(layout, {
+    target: 'both',
+    horizontalDelta: 0.2,
+    verticalDelta: 0.1,
+  });
+  assert.ok(both.visualScale > 1);
+  assert.ok(both.hitBoxScaleX > 1);
+  assert.ok(both.hitBoxScaleY > 1);
+});
+
+test('drum resize target helper clamps extreme resize requests', () => {
+  const layout = {
+    x: 0.5,
+    y: 0.5,
+    visualScale: 1,
+    hitBoxScaleX: 1,
+    hitBoxScaleY: 1,
+  };
+
+  const maxed = resizePieceLayoutFromCorner(layout, {
+    target: 'both',
+    horizontalDelta: 10,
+    verticalDelta: 10,
+  });
+  assert.equal(maxed.visualScale, 1.65);
+  assert.equal(maxed.hitBoxScaleX, 1.9);
+  assert.equal(maxed.hitBoxScaleY, 1.9);
+
+  const mined = resizePieceLayoutFromCorner(layout, {
+    target: 'both',
+    horizontalDelta: -10,
+    verticalDelta: -10,
+  });
+  assert.equal(mined.visualScale, 0.72);
+  assert.equal(mined.hitBoxScaleX, 0.6);
+  assert.equal(mined.hitBoxScaleY, 0.6);
 });

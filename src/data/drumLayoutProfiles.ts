@@ -48,6 +48,30 @@ export function createDefaultPieceLayout(pieceId: DrumPieceId): DrumPieceLayout 
   };
 }
 
+export function resizePieceLayoutFromCorner(
+  layout: DrumPieceLayout,
+  options: {
+    target: 'item' | 'hitBox' | 'both';
+    horizontalDelta: number;
+    verticalDelta: number;
+  },
+): DrumPieceLayout {
+  const next = { ...layout };
+
+  if (options.target === 'item' || options.target === 'both') {
+    next.visualScale = clampPieceScale(
+      layout.visualScale + (options.horizontalDelta + options.verticalDelta) * 0.8,
+    );
+  }
+
+  if (options.target === 'hitBox' || options.target === 'both') {
+    next.hitBoxScaleX = clampHitBoxScale(layout.hitBoxScaleX + options.horizontalDelta * 1.5);
+    next.hitBoxScaleY = clampHitBoxScale(layout.hitBoxScaleY + options.verticalDelta * 1.5);
+  }
+
+  return next;
+}
+
 export function buildDefaultDrumLayoutProfiles(): Record<DrumLayoutProfileId, DrumLayoutProfile> {
   return {
     default: {

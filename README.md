@@ -113,13 +113,14 @@ npm run validate
 - Crash Choke pauses and rewinds the bundled crash player pool as a performance action.
 - Drum Set pieces use per-piece image assets through a central drum asset registry; current shape rendering remains the fallback and hit boxes stay data-driven.
 - Drum Set controls live in a play controls overlay, with Default, Custom 1, and Custom 2 orientation-aware layout profiles.
-- Drum Set Edit Layout mode supports tap-to-select, drag-to-move, corner resize handles, and Item / Hit Box / Both resize targets.
-- Drum Set applies larger landscape-only visual and hit-box scaling for priority pieces while preserving stored layout profiles.
+- Drum Set Edit Layout mode supports tap-to-select, drag-to-move, working corner resize handles, and a visible stage toolbar for Item / Hit Box / Both resize targets.
+- Drum Set applies larger portrait defaults plus larger landscape-only visual and hit-box scaling for priority pieces while preserving stored layout profiles.
 - MIDI Controller screen with 3x4 and 4x4 pad layouts, playable pads, label/color/default sound/custom file editing, local persistence, and reset.
 - MIDI Controller editing lives in a controls overlay so the pad grid stays dominant.
 - MIDI Controller now uses a hardware-style surface with a dark body, recessed pad area, tactile pads, accent glows, and reduced default text clutter.
+- MIDI Controller uses two-row landscape grids where space allows: 3x4 mode becomes 2x6, and 4x4 mode becomes 2x8.
 - MIDI Controller separates Performance Mode from Edit Pads Mode. Performance pads respond immediately on press; Edit Pads Mode opens Pad Edit without playing.
-- Pad Edit includes per-pad playback behavior: Play once, Hold to play, Tap start/stop, retrigger mode, choke group, stop/release mode, and pad volume.
+- Pad Edit uses compact select/segmented controls and includes per-pad playback behavior: Play once, Hold to play, Tap start/stop, retrigger mode, choke group, stop/release mode, and pad volume slider.
 - MIDI pad display settings persist locally: show pad labels, show sound names, and show pad numbers.
 - Settings screen with persisted master volume, hit box visibility, low latency mode, and reset-all local data.
 - Settings uses a touch slider for master volume with a live percentage tooltip while dragging.

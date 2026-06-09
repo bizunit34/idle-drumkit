@@ -14,9 +14,15 @@ type Props = {
   value: number;
   onChange: (value: number) => void;
   onSlidingComplete?: (value: number) => void;
+  label?: string;
 };
 
-export function VolumeSlider({ value, onChange, onSlidingComplete }: Props) {
+export function VolumeSlider({
+  value,
+  onChange,
+  onSlidingComplete,
+  label = 'Master Volume',
+}: Props) {
   const [width, setWidth] = useState(1);
   const [dragging, setDragging] = useState(false);
   const clampedValue = clampSliderValue(value);
@@ -52,7 +58,7 @@ export function VolumeSlider({ value, onChange, onSlidingComplete }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.valueRow}>
-        <Text style={styles.valueLabel}>Master Volume</Text>
+        <Text style={styles.valueLabel}>{label}</Text>
         <Text style={styles.value}>{percent}%</Text>
       </View>
       <Pressable

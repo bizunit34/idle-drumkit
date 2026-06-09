@@ -21,6 +21,7 @@
     "src/types/index.ts",
     "src/utils/drumSizing.ts",
     "src/utils/layout.ts",
+    "src/utils/midiLayout.ts",
     "src/utils/slider.ts"
   ]
 }

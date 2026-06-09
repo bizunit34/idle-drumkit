@@ -28,9 +28,8 @@ import {
   getResetProfile,
   resetOrientationLayout,
   resetPieceLayout,
+  resizePieceLayoutFromCorner,
   resolvePieceLayout,
-  clampHitBoxScale,
-  clampPieceScale,
 } from '../data/drumLayoutProfiles';
 import { colors, radii, spacing } from '../theme';
 import { getResponsiveDrumScale } from '../utils/drumSizing';
@@ -323,20 +322,14 @@ export function DrumSetScreen({
     const vertical = corner === 'bottomLeft' || corner === 'bottomRight' ? dy : -dy;
     const next = { ...layout };
 
-    if (editTarget === 'item' || editTarget === 'both') {
-      const delta = (horizontal / boardSize.width + vertical / boardSize.height) * 1.6;
-      next.visualScale = clampPieceScale(layout.visualScale + delta);
-    }
+    const resized = resizePieceLayoutFromCorner(next, {
+      target: editTarget,
+      horizontalDelta: horizontal / boardSize.width,
+      verticalDelta: vertical / boardSize.height,
+    });
 
-    if (editTarget === 'hitBox' || editTarget === 'both') {
-      next.hitBoxScaleX = clampHitBoxScale(
-        layout.hitBoxScaleX + (horizontal / boardSize.width) * 3,
-      );
-      next.hitBoxScaleY = clampHitBoxScale(layout.hitBoxScaleY + (vertical / boardSize.height) * 3);
-    }
-
-    const widthRatio = next.hitBoxScaleX / Math.max(0.01, layout.hitBoxScaleX);
-    const heightRatio = next.hitBoxScaleY / Math.max(0.01, layout.hitBoxScaleY);
+    const widthRatio = resized.hitBoxScaleX / Math.max(0.01, layout.hitBoxScaleX);
+    const heightRatio = resized.hitBoxScaleY / Math.max(0.01, layout.hitBoxScaleY);
     return clampLayoutPosition(
       {
         ...piece,
@@ -345,7 +338,7 @@ export function DrumSetScreen({
           height: piece.size.height * heightRatio,
         },
       },
-      next,
+      resized,
     );
   };
 
@@ -447,6 +440,24 @@ export function DrumSetScreen({
     );
   };
 
+  const renderEditTargetSegments = () => (
+    <View style={styles.editTargetSegments}>
+      {(['item', 'hitBox', 'both'] as EditTarget[]).map((target) => (
+        <Pressable
+          key={target}
+          onPress={() => setEditTarget(target)}
+          style={[styles.editTargetSegment, editTarget === target && styles.activeEditTarget]}
+        >
+          <Text
+            style={[styles.editTargetText, editTarget === target && styles.activeEditTargetText]}
+          >
+            {target === 'hitBox' ? 'Hit Box' : target === 'both' ? 'Both' : 'Item'}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
   const renderControlsContent = () => (
     <>
       <View style={styles.controlGroup}>
@@ -532,6 +543,7 @@ export function DrumSetScreen({
           style={styles.stageDeselect}
         />
       ) : null}
+      {editMode ? <View style={styles.stageEditToolbar}>{renderEditTargetSegments()}</View> : null}
       {pieces.map((piece) => {
         const pieceLayout = activeOrientationPieces[piece.id] ?? createDefaultPieceLayout(piece.id);
         const articulation = resolveSelectedArticulation(
@@ -709,17 +721,6 @@ export function DrumSetScreen({
                   {piece.label} ·{' '}
                   {editTarget === 'hitBox' ? 'Hit Box' : editTarget === 'both' ? 'Both' : 'Item'}
                 </Text>
-                {(['topLeft', 'topRight', 'bottomLeft', 'bottomRight'] as ResizeCorner[]).map(
-                  (corner) => (
-                    <View
-                      key={corner}
-                      {...resizeResponders[corner].panHandlers}
-                      style={[styles.resizeHandle, styles[corner]]}
-                    >
-                      <View style={styles.resizeHandleDot} />
-                    </View>
-                  ),
-                )}
               </>
             ) : null}
             <Text style={styles.pieceLabel}>{piece.label}</Text>
@@ -739,8 +740,23 @@ export function DrumSetScreen({
 
         if (editMode) {
           return (
-            <View key={piece.id} {...panResponder.panHandlers} style={pieceStyle}>
-              {pieceContent}
+            <View key={piece.id} style={pieceStyle} pointerEvents="box-none">
+              <View {...panResponder.panHandlers} style={styles.pieceEditBody}>
+                {pieceContent}
+              </View>
+              {selectedInEdit
+                ? (['topLeft', 'topRight', 'bottomLeft', 'bottomRight'] as ResizeCorner[]).map(
+                    (corner) => (
+                      <View
+                        key={corner}
+                        {...resizeResponders[corner].panHandlers}
+                        style={[styles.resizeHandle, styles[corner]]}
+                      >
+                        <View style={styles.resizeHandleDot} />
+                      </View>
+                    ),
+                  )
+                : null}
             </View>
           );
         }
@@ -1070,12 +1086,56 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 0,
   },
+  stageEditToolbar: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
+    zIndex: 120,
+    padding: 3,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: 'rgba(8, 12, 18, 0.9)',
+  },
+  editTargetSegments: {
+    flexDirection: 'row',
+    overflow: 'hidden',
+    borderRadius: radii.sm,
+  },
+  editTargetSegment: {
+    minHeight: 38,
+    minWidth: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  activeEditTarget: {
+    backgroundColor: colors.cyan,
+  },
+  editTargetText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  activeEditTargetText: {
+    color: colors.black,
+  },
   piece: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 64,
     minHeight: 54,
+  },
+  pieceEditBody: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fallbackVisual: {
     position: 'absolute',
@@ -1130,6 +1190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 80,
+    elevation: 8,
   },
   resizeHandleDot: {
     width: 16,

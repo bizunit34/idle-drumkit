@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,15 +8,15 @@ import {
   Text,
   TextInput,
   View,
-  type ImageSourcePropType,
+  useWindowDimensions,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { AdBannerPlaceholder } from '../components/AdBannerPlaceholder';
 import { AppModalSheet } from '../components/AppModalSheet';
 import { AppButton } from '../components/AppButton';
+import { VolumeSlider } from '../components/VolumeSlider';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { appImageAssets } from '../assets/assetManifest';
 import { formatPadPlaybackMode, formatSound, getMidiPadDisplayText } from '../data/midiPadDisplay';
 import { buildResetMidiPads } from '../data/padUtils';
 import {
@@ -26,6 +25,7 @@ import {
   isSupportedAudioAsset,
 } from '../storage/customSoundFiles';
 import { midiAccentColors, colors, radii, spacing } from '../theme';
+import { getMidiGridDimensions } from '../utils/midiLayout';
 import type {
   AppSettings,
   MidiGridSize,
@@ -107,7 +107,40 @@ const stopModeOptions: {
   { value: 'mediumFade', label: 'Medium fade' },
 ];
 
-const soundNotFoundSource = appImageAssets.soundNotFound.source as ImageSourcePropType;
+type OptionSelectProps<T extends string> = {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+};
+
+function OptionSelect<T extends string>({ label, value, options, onChange }: OptionSelectProps<T>) {
+  const fallback = options[0];
+  if (!fallback) return null;
+
+  const currentIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  );
+  const current = options[currentIndex] ?? fallback;
+  const next = options[(currentIndex + 1) % options.length] ?? fallback;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${current.label}`}
+      accessibilityHint="Tap to cycle to the next option."
+      onPress={() => onChange(next.value)}
+      style={styles.selectRow}
+    >
+      <View>
+        <Text style={styles.selectLabel}>{label}</Text>
+        <Text style={styles.selectValue}>{current.label}</Text>
+      </View>
+      <Text style={styles.selectAction}>Change</Text>
+    </Pressable>
+  );
+}
 
 export function MidiControllerScreen({
   settings,
@@ -125,8 +158,10 @@ export function MidiControllerScreen({
   const [controlsOpen, setControlsOpen] = useState(false);
   const [padEditOpen, setPadEditOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [soundImageFailed, setSoundImageFailed] = useState(false);
-  const columns = gridSize === '3x4' ? 3 : 4;
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  const gridDimensions = getMidiGridDimensions(gridSize, landscape, width - spacing.md * 2);
+  const columns = gridDimensions.columns;
   const visiblePads = pads.slice(0, gridSize === '3x4' ? 12 : 16);
   const selectedPad = useMemo(
     () => pads.find((pad) => pad.id === selectedPadId) ?? pads[0],
@@ -241,8 +276,15 @@ export function MidiControllerScreen({
         </Text>
         <AppButton label="Controls" variant="secondary" onPress={() => setControlsOpen(true)} />
       </View>
-      <ScrollView style={styles.gridScroll} contentContainerStyle={styles.gridScrollContent}>
-        <View style={styles.controllerBody}>
+      <ScrollView
+        style={styles.gridScroll}
+        scrollEnabled={gridDimensions.scrollVertical}
+        contentContainerStyle={[
+          styles.gridScrollContent,
+          landscape && styles.landscapeGridScrollContent,
+        ]}
+      >
+        <View style={[styles.controllerBody, landscape && styles.landscapeControllerBody]}>
           <View style={styles.controllerTopBar}>
             <View style={styles.brandMark} />
             <Text style={styles.controllerBrand}>DRUMKIT PAD</Text>
@@ -251,7 +293,7 @@ export function MidiControllerScreen({
               <View style={[styles.statusLight, { backgroundColor: colors.lime }]} />
             </View>
           </View>
-          <View style={styles.controllerSurface}>
+          <View style={[styles.controllerSurface, landscape && styles.landscapeControllerSurface]}>
             <View style={styles.padGrid}>
               {visiblePads.map((pad, index) => {
                 const display = getMidiPadDisplayText(pad, index, settings.midiDisplay, editMode);
@@ -279,6 +321,7 @@ export function MidiControllerScreen({
                         borderColor: selectedPad?.id === pad.id ? pad.accentColor : '#343A48',
                         shadowColor: pad.accentColor,
                       },
+                      landscape && styles.landscapePad,
                       pressed && styles.padPressed,
                       selectedPad?.id === pad.id && styles.selectedPad,
                       editMode && styles.editablePad,
@@ -425,129 +468,95 @@ export function MidiControllerScreen({
               ))}
             </View>
             <Text style={styles.fieldLabel}>Default Sound</Text>
-            <View style={styles.soundList}>
-              {soundOptions.map((sound) => (
-                <Pressable
-                  key={sound}
-                  onPress={() => updatePad(selectedPad.id, { sound })}
-                  style={[styles.soundChip, selectedPad.sound === sound && styles.activeSoundChip]}
-                >
-                  <Text style={styles.soundChipText}>{formatSound(sound)}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <OptionSelect
+              label="Sound"
+              value={selectedPad.sound}
+              options={soundOptions.map((sound) => ({ value: sound, label: formatSound(sound) }))}
+              onChange={(sound) => updatePad(selectedPad.id, { sound })}
+            />
             <Text style={styles.fieldLabel}>Playback Behavior</Text>
             <Text style={styles.editorHelp}>
               Loop-point editing is deferred. Chokes and fades are best-effort in Expo audio.
             </Text>
             <Text style={styles.subFieldLabel}>Playback Mode</Text>
-            <View style={styles.optionList}>
+            <View style={styles.modeSegments}>
               {playbackModeOptions.map((option) => (
                 <Pressable
                   key={option.value}
                   onPress={() => updatePadBehavior(selectedPad.id, { playbackMode: option.value })}
                   style={[
-                    styles.behaviorOption,
-                    selectedPad.behavior.playbackMode === option.value && styles.activeSoundChip,
+                    styles.modeSegment,
+                    selectedPad.behavior.playbackMode === option.value && styles.activeSegment,
                   ]}
                 >
-                  <Text style={styles.soundChipText}>{option.label}</Text>
-                  <Text style={styles.behaviorHelp}>{option.help}</Text>
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      selectedPad.behavior.playbackMode === option.value &&
+                        styles.activeSegmentText,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
                 </Pressable>
               ))}
             </View>
+            <Text style={styles.behaviorHelp}>
+              {playbackModeOptions.find(
+                (option) => option.value === selectedPad.behavior.playbackMode,
+              )?.help ?? ''}
+            </Text>
             <Text style={styles.subFieldLabel}>Retrigger</Text>
-            <View style={styles.soundList}>
-              {retriggerModeOptions.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => updatePadBehavior(selectedPad.id, { retriggerMode: option.value })}
-                  style={[
-                    styles.soundChip,
-                    selectedPad.behavior.retriggerMode === option.value && styles.activeSoundChip,
-                  ]}
-                >
-                  <Text style={styles.soundChipText}>{option.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <OptionSelect
+              label="Retrigger"
+              value={selectedPad.behavior.retriggerMode}
+              options={retriggerModeOptions}
+              onChange={(retriggerMode) => updatePadBehavior(selectedPad.id, { retriggerMode })}
+            />
             <Text style={styles.subFieldLabel}>Choke Group</Text>
-            <View style={styles.soundList}>
-              {chokeGroupOptions.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => updatePadBehavior(selectedPad.id, { chokeGroup: option.value })}
-                  style={[
-                    styles.soundChip,
-                    selectedPad.behavior.chokeGroup === option.value && styles.activeSoundChip,
-                  ]}
-                >
-                  <Text style={styles.soundChipText}>{option.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <OptionSelect
+              label="Choke Group"
+              value={selectedPad.behavior.chokeGroup}
+              options={chokeGroupOptions}
+              onChange={(chokeGroup) => updatePadBehavior(selectedPad.id, { chokeGroup })}
+            />
             <Text style={styles.subFieldLabel}>Stop / Release</Text>
-            <View style={styles.soundList}>
-              {stopModeOptions.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => updatePadBehavior(selectedPad.id, { stopMode: option.value })}
-                  style={[
-                    styles.soundChip,
-                    selectedPad.behavior.stopMode === option.value && styles.activeSoundChip,
-                  ]}
-                >
-                  <Text style={styles.soundChipText}>{option.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <OptionSelect
+              label="Stop / Release"
+              value={selectedPad.behavior.stopMode}
+              options={stopModeOptions}
+              onChange={(stopMode) => updatePadBehavior(selectedPad.id, { stopMode })}
+            />
             <Text style={styles.subFieldLabel}>Pad Volume</Text>
-            <View style={styles.volumeRow}>
-              <AppButton
-                label="-"
-                variant="secondary"
-                onPress={() =>
-                  updatePadBehavior(selectedPad.id, {
-                    padVolume: Math.max(0, selectedPad.behavior.padVolume - 5),
-                  })
-                }
-              />
-              <Text style={styles.volumeValue}>{selectedPad.behavior.padVolume}%</Text>
-              <AppButton
-                label="+"
-                variant="secondary"
-                onPress={() =>
-                  updatePadBehavior(selectedPad.id, {
-                    padVolume: Math.min(100, selectedPad.behavior.padVolume + 5),
-                  })
-                }
-              />
-            </View>
+            <VolumeSlider
+              label="Pad Volume"
+              value={selectedPad.behavior.padVolume / 100}
+              onChange={(padVolume) =>
+                updatePadBehavior(selectedPad.id, { padVolume: Math.round(padVolume * 100) })
+              }
+            />
             <Text style={styles.fieldLabel}>Custom Audio</Text>
-            <View style={styles.importIllustration}>
-              {!soundImageFailed ? (
-                <Image
-                  source={soundNotFoundSource}
-                  resizeMode="contain"
-                  accessibilityIgnoresInvertColors
-                  onError={() => setSoundImageFailed(true)}
-                  style={styles.importImage}
+            <View style={styles.customAudioPanel}>
+              <View style={styles.customAudioGlyph}>
+                <View
+                  style={[styles.customAudioBar, { backgroundColor: selectedPad.accentColor }]}
                 />
-              ) : (
-                <>
-                  <View style={styles.importBar} />
-                  <View style={styles.importDot} />
-                </>
-              )}
+                <View style={styles.customAudioDot} />
+              </View>
+              <View style={styles.customAudioCopy}>
+                <Text style={styles.customAudioTitle}>Custom Audio</Text>
+                <Text style={styles.customAudioBody}>
+                  {selectedPad.customSoundName ?? 'No custom sound assigned'}
+                </Text>
+              </View>
             </View>
             <AppButton label="Assign Audio File" onPress={chooseSoundFile} />
             {selectedPad.customSoundUri ? (
-              <View style={styles.customFileRow}>
-                <Text style={styles.customFileName}>
-                  {selectedPad.customSoundName ?? 'Custom sound selected'}
-                </Text>
-                <AppButton label="Clear" onPress={clearCustomSound} />
-              </View>
+              <AppButton
+                label="Clear Custom Sound"
+                variant="secondary"
+                onPress={clearCustomSound}
+              />
             ) : null}
           </ScrollView>
         )}
@@ -581,6 +590,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: spacing.md,
   },
+  landscapeGridScrollContent: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
   controllerBody: {
     flex: 1,
     minHeight: 360,
@@ -593,6 +606,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 18,
     elevation: 5,
+  },
+  landscapeControllerBody: {
+    minHeight: 0,
+    padding: spacing.sm,
   },
   controllerTopBar: {
     minHeight: 38,
@@ -657,6 +674,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#202633',
   },
+  landscapeControllerSurface: {
+    minHeight: 0,
+    padding: spacing.sm,
+  },
   padGrid: {
     flex: 1,
     flexDirection: 'row',
@@ -677,6 +698,11 @@ const styles = StyleSheet.create({
     shadowRadius: 9,
     elevation: 3,
     overflow: 'hidden',
+  },
+  landscapePad: {
+    minHeight: 66,
+    padding: spacing.sm,
+    aspectRatio: 1.5,
   },
   selectedPad: {
     borderWidth: 3,
@@ -806,6 +832,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
   },
+  selectRow: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+  },
+  selectLabel: {
+    color: colors.mutedText,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  selectValue: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  selectAction: {
+    color: colors.cyan,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   input: {
     minHeight: 44,
     borderRadius: radii.md,
@@ -829,18 +885,17 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.text,
   },
-  soundList: {
+  modeSegments: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  optionList: {
-    gap: spacing.sm,
-  },
-  behaviorOption: {
-    gap: spacing.xs,
+  modeSegment: {
+    minHeight: 44,
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -851,67 +906,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
-  soundChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  customAudioPanel: {
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surfaceRaised,
   },
-  activeSoundChip: {
-    borderColor: colors.cyan,
-  },
-  soundChipText: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  customFileRow: {
-    gap: spacing.sm,
-  },
-  customFileName: {
-    color: colors.mutedText,
-  },
-  volumeRow: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  volumeValue: {
-    minWidth: 72,
-    color: colors.cyan,
-    fontSize: 18,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  importIllustration: {
-    height: 62,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
+  customAudioGlyph: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
     overflow: 'hidden',
   },
-  importImage: {
-    width: '100%',
-    height: 58,
+  customAudioBar: {
+    width: 30,
+    height: 8,
+    borderRadius: 4,
   },
-  importBar: {
-    width: 88,
+  customAudioDot: {
+    position: 'absolute',
+    right: 9,
+    bottom: 9,
+    width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.electricBlue,
-  },
-  importDot: {
-    position: 'absolute',
-    right: spacing.lg,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
     backgroundColor: colors.lime,
+  },
+  customAudioCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  customAudioTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  customAudioBody: {
+    color: colors.mutedText,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
 });
